@@ -1,458 +1,434 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>蜜蜂追小狗</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #87CEEB; /* 天空蓝兜底 */
-            font-family: 'Arial', sans-serif;
-            touch-action: none; /* 防止移动端滚动 */
-            user-select: none;
-        }
-        #gameCanvas {
-            display: block;
-        }
-        /* UI 层样式 */
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-        
-        /* 菜单面板 */
-        .menu-panel {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            text-align: center;
-            pointer-events: auto; /* 允许点击按钮 */
-            max-width: 90%;
-            border: 4px solid #4CAF50;
-        }
+import React, { useState } from ‘react’;
+import { Sparkles, Heart, Backpack } from ‘lucide-react’;
 
-        .btn {
-            display: block;
-            width: 100%;
-            margin: 10px 0;
-            padding: 12px 24px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.1s;
-        }
-        .btn:active {
-            transform: scale(0.95);
-        }
-        
-        .btn-easy { background-color: #8BC34A; }
-        .btn-medium { background-color: #FF9800; }
-        .btn-hard { background-color: #F44336; }
+const TextAdventureGame = () => {
+const [currentScene, setCurrentScene] = useState(‘start’);
+const [inventory, setInventory] = useState([]);
+const [health, setHealth] = useState(100);
+const [gameOver, setGameOver] = useState(false);
+const [victory, setVictory] = useState(false);
 
-        .hidden { display: none !important; }
-        
-        #win-screen {
-            background: rgba(0, 0, 0, 0.85);
-            color: white;
-        }
-        .code-text {
-            font-size: 4rem;
-            color: #FFD700;
-            text-shadow: 0 0 20px #FFD700;
-            font-weight: bold;
-            margin: 20px 0;
-            font-family: monospace;
-            word-break: break-all;
-        }
-    </style>
-</head>
-<body>
+const addToInventory = (item) => {
+setInventory([…inventory, item]);
+};
 
-    <!-- 游戏画布 -->
-    <canvas id="gameCanvas"></canvas>
+const hasItem = (item) => inventory.includes(item);
 
-    <!-- UI 界面 -->
-    <div id="ui-layer">
-        
-        <!-- 开始菜单 -->
-        <div id="start-menu" class="menu-panel">
-            <h1 class="text-3xl font-bold mb-2 text-green-700">🐝 蜜蜂追小狗 🐶</h1>
-            <p class="text-gray-600 mb-6">选择难度开始游戏</p>
-            
-            <button class="btn btn-easy" onclick="startGame('easy')">简单 (散步)</button>
-            <button class="btn btn-medium" onclick="startGame('medium')">中等 (慢跑)</button>
-            <button class="btn btn-hard" onclick="startGame('hard')">困难 (飞奔)</button>
+const changeHealth = (amount) => {
+const newHealth = Math.max(0, Math.min(100, health + amount));
+setHealth(newHealth);
+if (newHealth === 0) {
+setGameOver(true);
+}
+};
+
+const scenes = {
+start: {
+text: “你醒来时发现自己躺在一片迷雾笼罩的森林中。阳光透过树叶洒下斑驳的光影，远处传来不明的声音。你完全不记得自己是如何来到这里的。\n\n你注意到地上有一个破旧的背包和一根结实的木棍。”,
+choices: [
+{ text: “拿起背包和木棍”, next: “forest_path”, action: () => { addToInventory(‘木棍’); addToInventory(‘背包’); } },
+{ text: “只拿木棍，轻装前行”, next: “forest_path”, action: () => addToInventory(‘木棍’) },
+{ text: “什么都不拿，立即探索”, next: “forest_path” }
+]
+},
+forest_path: {
+text: “你沿着一条若隐若现的小径前行。迷雾渐渐散去，你看到前方小径分成了三条岔路：\n\n左边的路通向一座古老的石桥，桥下流水潺潺；\n中间的路延伸进更深的密林，树木遮天蔽日；\n右边的路爬上一个小山坡，似乎能看到远处的景色。”,
+choices: [
+{ text: “走向左边的石桥”, next: “stone_bridge” },
+{ text: “进入中间的密林”, next: “deep_forest” },
+{ text: “爬上右边的山坡”, next: “hilltop” }
+]
+},
+stone_bridge: {
+text: “你来到石桥前。这座桥看起来已有数百年历史，长满了青苔。桥的另一端隐约可见一座小木屋。\n\n正当你准备过桥时，一个苍老的声音从桥下传来："年轻人，想过桥吗？回答我一个问题，或者给我一件宝物。"”,
+choices: [
+{ text: “回答问题：生命中最重要的是什么？”, next: “bridge_riddle” },
+{
+text: “把背包给他”,
+next: “bridge_gift_check”,
+disabled: true
+},
+{ text: “尝试强行冲过桥”, next: “bridge_force” }
+]
+},
+bridge_riddle: {
+text: “老者沉思片刻后笑了："勇气与智慧。很好的答案。"\n\n桥下升起一道金光，一枚古老的钥匙漂浮到你面前。"这把钥匙会在你需要时帮助你。"老者说完便消失了。\n\n你可以安全地过桥了。对岸的木屋门前站着一个神秘的人影。”,
+choices: [
+{ text: “拿起钥匙，前往木屋”, next: “cabin”, action: () => addToInventory(‘金色钥匙’) },
+{ text: “返回岔路口”, next: “forest_path” }
+]
+},
+bridge_gift_check: {
+text: “”,
+choices: []
+},
+bridge_gift: {
+text: “老者接过背包，满意地点了点头："慷慨之人必有善报。"\n\n他从背包中取出一瓶药水递给你："这是治疗药水，关键时刻会救你一命。"然后消失在桥下。\n\n你可以安全地过桥了。对岸的木屋门前站着一个神秘的人影。”,
+choices: [
+{ text: “拿起药水，前往木屋”, next: “cabin”, action: () => addToInventory(‘治疗药水’) },
+{ text: “返回岔路口”, next: “forest_path” }
+]
+},
+bridge_force: {
+text: “你试图冲过桥，但桥突然开始剧烈摇晃！一块石头砸中了你的肩膀。\n\n你勉强冲到了对岸，但受了伤。对岸的木屋门前站着一个神秘的人影。”,
+choices: [
+{ text: “前往木屋”, next: “cabin”, action: () => changeHealth(-20) },
+{ text: “先休息恢复”, next: “rest_bridge”, action: () => changeHealth(-20) }
+]
+},
+rest_bridge: {
+text: “你在桥边休息了一会儿，伤势稍有好转。你决定前往木屋。”,
+choices: [
+{ text: “前往木屋”, next: “cabin”, action: () => changeHealth(10) }
+]
+},
+cabin: {
+text: “木屋前站着一位身披斗篷的神秘女子。她看到你后说道："旅行者，我是这片森林的守护者。你要找到森林之心才能离开这里。"\n\n"森林之心被封印在迷雾塔中，但进入塔需要三件圣物：光明之石、智慧卷轴和勇气徽章。我可以给你第一件。"”,
+choices: [
+{ text: “接受光明之石”, next: “get_stone”, action: () => addToInventory(‘光明之石’) },
+{ text: “询问更多信息”, next: “cabin_info” }
+]
+},
+get_stone: {
+text: “女子将一颗闪烁着柔和光芒的石头交给你。"其他两件圣物，你需要自己去寻找。智慧卷轴在密林深处的神殿，勇气徽章在山顶的试炼场。"\n\n她指向远方："祝你好运，勇敢的旅行者。"”,
+choices: [
+{ text: “前往密林神殿”, next: “deep_forest” },
+{ text: “前往山顶试炼场”, next: “hilltop” },
+{ text: “返回岔路口重新规划”, next: “forest_path” }
+]
+},
+cabin_info: {
+text: “女子解释道："这片森林曾经充满生机，但一个黑暗法师偷走了森林之心。只有集齐三件圣物，你才能进入迷雾塔取回它。"\n\n"时间不多了，森林正在逐渐枯萎。"”,
+choices: [
+{ text: “接受光明之石开始寻找”, next: “get_stone”, action: () => addToInventory(‘光明之石’) }
+]
+},
+deep_forest: {
+text: “你进入密林深处，周围越来越暗。”,
+choices: []
+},
+deep_forest_dark: {
+text: “密林深处一片漆黑，你什么都看不见。恐惧涌上心头，你只能返回。”,
+choices: [
+{ text: “返回岔路口”, next: “forest_path” }
+]
+},
+deep_forest_light: {
+text: “幸好光明之石散发出柔和的光芒，照亮了前路。\n\n你看到前方有一座半掩埋在藤蔓中的古老神殿。神殿门口刻着古老的文字："智者方可入内。"”,
+choices: [
+{ text: “进入神殿”, next: “temple” },
+{ text: “先探索周围”, next: “temple_explore” }
+]
+},
+temple: {
+text: “神殿内部昏暗潮湿，墙上刻满了古老的文字和图案。中央有一个石台，上面放着一个卷轴。\n\n但石台前站着一个石像守卫。它开口说道："要证明你的智慧，解开这个谜题：我不是活的，但我会生长；我没有肺，但我需要空气；我没有嘴，但水会杀死我。我是什么？"”,
+choices: [
+{ text: “回答：火焰”, next: “temple_correct” },
+{ text: “回答：植物”, next: “temple_wrong” },
+{ text: “用木棍攻击石像”, next: “temple_fight_check”, disabled: true }
+]
+},
+temple_fight_check: {
+text: “”,
+choices: []
+},
+temple_correct: {
+text: “石像守卫点头："智慧之人，你可以取走卷轴。"\n\n石像让开了道路，你拿到了智慧卷轴！卷轴上写着古老的咒语和知识。”,
+choices: [
+{ text: “继续收集圣物”, next: “after_temple”, action: () => addToInventory(‘智慧卷轴’) }
+]
+},
+after_temple: {
+text: “你现在拥有了智慧卷轴！”,
+choices: []
+},
+temple_wrong: {
+text: “石像守卫摇头："错误。"一道能量波击中了你！\n\n你被震飞出神殿，受了重伤。”,
+choices: [
+{ text: “使用治疗药水”, next: “temple_heal_check”, disabled: true },
+{ text: “忍痛返回”, next: “forest_path”, action: () => changeHealth(-30) }
+]
+},
+temple_heal_check: {
+text: “”,
+choices: []
+},
+temple_heal: {
+text: “你喝下治疗药水，伤势迅速愈合。你感觉好多了！\n\n你可以重新尝试进入神殿。”,
+choices: [
+{ text: “再次进入神殿”, next: “temple”, action: () => changeHealth(40) },
+{ text: “先去其他地方”, next: “forest_path”, action: () => changeHealth(40) }
+]
+},
+temple_fight: {
+text: “你挥舞木棍攻击石像，但石像坚硬如铁！它一拳将你打飞。\n\n你受了重伤，木棍也断了。”,
+choices: [
+{ text: “逃离神殿”, next: “forest_path”, action: () => changeHealth(-40) }
+]
+},
+temple_explore: {
+text: “你在神殿周围探索，发现了一些古老的壁画。壁画描绘了森林的历史和三件圣物的传说。\n\n你获得了一些有用的知识。”,
+choices: [
+{ text: “进入神殿”, next: “temple” }
+]
+},
+hilltop: {
+text: “你爬上山坡，视野豁然开朗。山顶上有一个古老的竞技场，中央立着一块石碑。\n\n石碑上写着："勇者试炼场。证明你的勇气，即可获得勇气徽章。"\n\n突然，一只巨大的石狼从竞技场另一端走出，发出低沉的吼声。”,
+choices: [
+{ text: “战斗”, next: “wolf_fight_check”, disabled: true },
+{ text: “尝试与石狼沟通”, next: “wolf_talk” },
+{ text: “逃跑”, next: “forest_path”, action: () => changeHealth(-10) }
+]
+},
+wolf_fight_check: {
+text: “”,
+choices: []
+},
+wolf_fight_stick: {
+text: “你挥舞木棍与石狼战斗！战斗激烈而危险，你被抓伤了几处，但最终你击败了石狼。\n\n石狼化作光点消散，留下了勇气徽章。你证明了自己的勇气！”,
+choices: [
+{ text: “继续冒险”, next: “after_wolf”, action: () => { addToInventory(‘勇气徽章’); changeHealth(-20); } }
+]
+},
+wolf_fight_bare: {
+text: “你徒手与石狼战斗！虽然英勇，但你受了重伤。幸运的是，石狼认可了你的勇气，主动化作光点，留下了勇气徽章。”,
+choices: [
+{ text: “继续冒险”, next: “after_wolf”, action: () => { addToInventory(‘勇气徽章’); changeHealth(-35); } }
+]
+},
+after_wolf: {
+text: “你获得了勇气徽章！”,
+choices: []
+},
+wolf_talk: {
+text: “你放下武器，试图与石狼沟通。石狼停下脚步，用智慧的眼神看着你。\n\n"真正的勇气不是无畏，而是在恐惧中依然选择正确的道路。"石狼说道，然后化作光芒，勇气徽章出现在你面前。\n\n"你通过了试炼。"”,
+choices: [
+{ text: “继续冒险”, next: “after_wolf”, action: () => addToInventory(‘勇气徽章’) }
+]
+},
+mist_tower: {
+text: “你终于集齐了三件圣物！\n\n来到森林中心，一座高耸的迷雾塔出现在眼前。三件圣物开始发光，共鸣着打开了塔门。\n\n你走进塔内，最顶层有一个散发着黑暗气息的法师。他手中握着森林之心——一颗脉搏般跳动的绿色宝石。”,
+choices: [
+{ text: “用智慧卷轴削弱他的力量”, next: “final_battle_check”, disabled: true },
+{ text: “直接发起进攻”, next: “final_battle_direct” }
+]
+},
+final_battle_check: {
+text: “”,
+choices: []
+},
+final_battle: {
+text: “你念出智慧卷轴上的咒语，黑暗法师的力量被削弱了！光明之石和勇气徽章也发出耀眼的光芒。\n\n"该结束了！"你冲向法师，经过激烈的战斗，你成功夺回了森林之心！\n\n法师消散在空气中，森林之心回到了你手中。外面的森林开始恢复生机，迷雾散去，阳光普照。”,
+choices: [
+{ text: “完成冒险”, next: “victory”, action: () => setVictory(true) }
+]
+},
+final_battle_key: {
+text: “你念出智慧卷轴上的咒语，同时用金色钥匙解开了森林之心上的封印！\n\n黑暗法师发出惊恐的叫声，森林之心自动飞向你。三件圣物和钥匙的力量结合，轻松击败了法师。\n\n森林之心回归，森林瞬间恢复了生机！鸟语花香，生机盎然。”,
+choices: [
+{ text: “完成冒险”, next: “victory”, action: () => setVictory(true) }
+]
+},
+final_battle_direct: {
+text: “你直接冲向黑暗法师，但他的黑暗魔法太强大了！你被击中，受了重伤。\n\n就在危急时刻，三件圣物突然发光，保护了你并给你力量。你重新站起，最终击败了法师！\n\n但战斗让你付出了代价。森林恢复了，但你也筋疲力尽。”,
+choices: [
+{ text: “完成冒险”, next: “victory”, action: () => { changeHealth(-30); setVictory(true); } }
+]
+},
+victory: {
+text: “恭喜！你成功完成了冒险！\n\n森林守护者出现在你面前，微笑着说："谢谢你，勇敢的旅行者。你拯救了这片森林。"\n\n一道光门打开，你终于可以离开这片迷雾森林了。当你走出光门，发现自己回到了熟悉的世界……但手中的光明之石提醒你，这场冒险是真实的。\n\n【游戏结束】”,
+choices: [
+{ text: “重新开始”, next: “start”, action: () => { setInventory([]); setHealth(100); setGameOver(false); setVictory(false); } }
+]
+}
+};
+
+const handleChoice = (choice) => {
+if (choice.action) {
+choice.action();
+}
+
+```
+let nextScene = choice.next;
+
+if (nextScene === 'bridge_gift_check') {
+  if (hasItem('背包')) {
+    const newInv = inventory.filter(i => i !== '背包');
+    setInventory(newInv);
+    nextScene = 'bridge_gift';
+  } else {
+    return;
+  }
+}
+
+if (nextScene === 'deep_forest') {
+  nextScene = hasItem('光明之石') ? 'deep_forest_light' : 'deep_forest_dark';
+}
+
+if (nextScene === 'temple_fight_check') {
+  if (hasItem('木棍')) {
+    const newInv = inventory.filter(i => i !== '木棍');
+    setInventory(newInv);
+    nextScene = 'temple_fight';
+  } else {
+    return;
+  }
+}
+
+if (nextScene === 'temple_heal_check') {
+  if (hasItem('治疗药水')) {
+    const newInv = inventory.filter(i => i !== '治疗药水');
+    setInventory(newInv);
+    changeHealth(-30);
+    nextScene = 'temple_heal';
+  } else {
+    return;
+  }
+}
+
+if (nextScene === 'wolf_fight_check') {
+  nextScene = hasItem('木棍') ? 'wolf_fight_stick' : 'wolf_fight_bare';
+}
+
+if (nextScene === 'after_temple') {
+  nextScene = hasItem('勇气徽章') ? 'mist_tower' : 'hilltop';
+}
+
+if (nextScene === 'after_wolf') {
+  nextScene = hasItem('智慧卷轴') ? 'mist_tower' : 'deep_forest';
+}
+
+if (nextScene === 'final_battle_check') {
+  nextScene = hasItem('金色钥匙') ? 'final_battle_key' : 'final_battle';
+}
+
+setCurrentScene(nextScene);
+```
+
+};
+
+if (gameOver) {
+return (
+<div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-8 flex items-center justify-center">
+<div className="max-w-2xl bg-red-900/30 border-2 border-red-500 rounded-lg p-8 text-center">
+<h2 className="text-3xl font-bold mb-4">游戏结束</h2>
+<p className="text-xl mb-6">你的生命值降为零。森林吞噬了你……</p>
+<button
+onClick={() => {
+setCurrentScene(‘start’);
+setInventory([]);
+setHealth(100);
+setGameOver(false);
+setVictory(false);
+}}
+className=“px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition”
+>
+重新开始
+</button>
+</div>
+</div>
+);
+}
+
+const scene = scenes[currentScene];
+
+return (
+<div className="min-h-screen bg-gradient-to-b from-indigo-900 via-purple-900 to-gray-900 text-white p-4 md:p-8">
+<div className="max-w-4xl mx-auto">
+<div className="text-center mb-6">
+<h1 className="text-4xl font-bold mb-2 flex items-center justify-center gap-2">
+<Sparkles className="text-yellow-400" />
+迷雾森林冒险
+<Sparkles className="text-yellow-400" />
+</h1>
+<p className="text-gray-300">一场关于勇气与智慧的旅程</p>
+</div>
+
+```
+    <div className="bg-gray-800/50 rounded-lg p-4 mb-6 flex flex-wrap gap-4 justify-between items-center">
+      <div className="flex items-center gap-2">
+        <Heart className="text-red-500" />
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">生命值:</span>
+          <div className="w-32 h-4 bg-gray-700 rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all ${health > 60 ? 'bg-green-500' : health > 30 ? 'bg-yellow-500' : 'bg-red-500'}`}
+              style={{ width: `${health}%` }}
+            />
+          </div>
+          <span>{health}/100</span>
         </div>
-
-        <!-- 胜利界面 (初始隐藏) -->
-        <div id="win-screen" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-auto">
-            <h2 class="text-3xl mb-4">🎉 抓到了！</h2>
-            <p class="text-xl">神秘代码是：</p>
-            <div class="code-text">smgfxyjq</div>
-            <button class="btn btn-medium mt-8" style="max-width: 200px;" onclick="showMenu()">返回主菜单</button>
-        </div>
-
-        <!-- 游戏中的提示 (仅在游戏进行时显示) -->
-        <div id="game-hud" class="hidden absolute top-4 left-4 pointer-events-none text-white drop-shadow-md font-bold">
-            当前难度: <span id="difficulty-display"></span>
-        </div>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        <Backpack className="text-blue-400" />
+        <span className="font-semibold">背包:</span>
+        <span className="text-gray-300">
+          {inventory.length === 0 ? '空' : inventory.join(', ')}
+        </span>
+      </div>
     </div>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+    <div className="bg-gray-800/70 rounded-lg p-6 mb-6 min-h-[200px]">
+      <p className="text-lg leading-relaxed whitespace-pre-line">{scene.text}</p>
+    </div>
+
+    <div className="space-y-3">
+      {scene.choices.map((choice, index) => {
+        let isDisabled = choice.disabled;
+        let displayText = choice.text;
         
-        // 用于缓存草地背景的 Canvas (提升性能)
-        const bgCanvas = document.createElement('canvas');
-        const bgCtx = bgCanvas.getContext('2d');
-
-        // UI 元素
-        const startMenu = document.getElementById('start-menu');
-        const winScreen = document.getElementById('win-screen');
-        const gameHud = document.getElementById('game-hud');
-        const difficultyDisplay = document.getElementById('difficulty-display');
-
-        // 游戏状态
-        let isPlaying = false;
-        let width, height;
-        let animationId;
-
-        // 游戏对象
-        const bee = {
-            x: 0, y: 0,
-            size: 50,
-            speed: 0.1, // 跟随鼠标的延迟系数
-            emoji: "🐝"
-        };
-
-        const dog = {
-            x: 0, y: 0,
-            vx: 0, vy: 0,
-            size: 50,
-            baseSpeed: 3,
-            currentSpeed: 3,
-            fleeDistance: 150, // 逃跑触发距离
-            panicFactor: 1.5,  // 逃跑时的速度倍率
-            changeDirTimer: 0,
-            stuckTimer: 0,     // 防卡死计时器
-            emoji: "🐶"
-        };
-
-        const input = { x: 0, y: 0 };
-
-        // 初始化
-        function init() {
-            resize();
-            window.addEventListener('resize', resize);
-            
-            // 输入监听
-            window.addEventListener('mousemove', handleInput);
-            window.addEventListener('touchmove', handleInput, { passive: false });
-            window.addEventListener('touchstart', handleInput, { passive: false });
-
-            // 启动循环
-            animate();
+        if (currentScene === 'stone_bridge' && index === 1) {
+          isDisabled = !hasItem('背包');
+          displayText = hasItem('背包') ? '把背包给他' : '把背包给他（你没有背包）';
         }
-
-        function resize() {
-            // 确保宽高至少为1，防止InvalidStateError
-            width = Math.max(window.innerWidth, 100);
-            height = Math.max(window.innerHeight, 100);
-            
-            canvas.width = width;
-            canvas.height = height;
-            bgCanvas.width = width;
-            bgCanvas.height = height;
-            drawGrassBackground(); // 重绘草地
-            
-            // 如果在菜单界面，重置蜜蜂位置到中心
-            if (!isPlaying) {
-                bee.x = width / 2;
-                bee.y = height / 2;
-            }
+        
+        if (currentScene === 'temple' && index === 2) {
+          isDisabled = !hasItem('木棍');
+          displayText = hasItem('木棍') ? '用木棍攻击石像' : '用木棍攻击石像（你没有木棍）';
         }
-
-        // 绘制草地背景到缓存 Canvas
-        function drawGrassBackground() {
-            // 安全检查
-            if (bgCanvas.width === 0 || bgCanvas.height === 0) return;
-
-            // 1. 铺底色
-            bgCtx.fillStyle = '#7CFC00'; // 草坪绿
-            bgCtx.fillRect(0, 0, width, height);
-            
-            // 2. 随机画 1000 根小草
-            bgCtx.strokeStyle = '#558B2F'; // 深绿色
-            bgCtx.lineWidth = 2;
-            
-            for (let i = 0; i < 1500; i++) {
-                const x = Math.random() * width;
-                const y = Math.random() * height;
-                const len = Math.random() * 10 + 5;
-                const angle = (Math.random() - 0.5) * 1; // 稍微倾斜
-                
-                bgCtx.beginPath();
-                bgCtx.moveTo(x, y);
-                bgCtx.lineTo(x + Math.sin(angle) * len, y - Math.cos(angle) * len);
-                bgCtx.stroke();
-            }
-
-            // 3. 随机画几朵小花
-            const flowers = ['🌼', '🌸', '🌻'];
-            bgCtx.font = "20px Arial";
-            for (let i = 0; i < 20; i++) {
-                const x = Math.random() * width;
-                const y = Math.random() * height;
-                const flower = flowers[Math.floor(Math.random() * flowers.length)];
-                bgCtx.fillText(flower, x, y);
-            }
+        
+        if (currentScene === 'temple_wrong' && index === 0) {
+          isDisabled = !hasItem('治疗药水');
+          displayText = hasItem('治疗药水') ? '使用治疗药水' : '使用治疗药水（你没有药水）';
         }
-
-        function startGame(difficulty) {
-            // 设置难度参数
-            switch(difficulty) {
-                case 'easy':
-                    dog.baseSpeed = 2;
-                    dog.fleeDistance = 100;
-                    dog.panicFactor = 1.2;
-                    difficultyDisplay.innerText = "简单";
-                    break;
-                case 'medium':
-                    dog.baseSpeed = 4;
-                    dog.fleeDistance = 180;
-                    dog.panicFactor = 1.6;
-                    difficultyDisplay.innerText = "中等";
-                    break;
-                case 'hard':
-                    dog.baseSpeed = 7;
-                    dog.fleeDistance = 250; // 离很远就开始跑
-                    dog.panicFactor = 2.0; // 跑得飞快
-                    difficultyDisplay.innerText = "困难";
-                    break;
-            }
-
-            // UI 切换
-            startMenu.classList.add('hidden');
-            winScreen.classList.add('hidden');
-            gameHud.classList.remove('hidden');
-
-            // 重置位置
-            input.x = width / 2;
-            input.y = height / 2;
-            bee.x = input.x;
-            bee.y = input.y;
-            resetDog();
-
-            isPlaying = true;
+        
+        if (currentScene === 'hilltop' && index === 0) {
+          displayText = hasItem('木棍') ? '用木棍战斗' : '徒手战斗';
         }
-
-        function showMenu() {
-            isPlaying = false;
-            startMenu.classList.remove('hidden');
-            winScreen.classList.add('hidden');
-            gameHud.classList.add('hidden');
+        
+        if (currentScene === 'mist_tower' && index === 0) {
+          displayText = hasItem('金色钥匙') ? '用智慧卷轴和金色钥匙' : '用智慧卷轴削弱他的力量';
         }
+        
+        return (
+          <button
+            key={index}
+            onClick={() => handleChoice(choice)}
+            disabled={isDisabled}
+            className={`w-full p-4 rounded-lg font-semibold transition transform hover:scale-105 text-left ${
+              isDisabled
+                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg'
+            }`}
+          >
+            <span className="text-yellow-400 mr-2">▸</span>
+            {displayText}
+          </button>
+        );
+      })}
+    </div>
 
-        function resetDog() {
-            // 让狗出现在离蜜蜂较远的地方
-            do {
-                dog.x = Math.random() * (width - dog.size * 2) + dog.size;
-                dog.y = Math.random() * (height - dog.size * 2) + dog.size;
-            } while (getDistance(bee.x, bee.y, dog.x, dog.y) < 400);
-            
-            dog.vx = (Math.random() - 0.5) * dog.baseSpeed;
-            dog.vy = (Math.random() - 0.5) * dog.baseSpeed;
-        }
+    {victory && (
+      <div className="mt-6 text-center text-yellow-400 animate-pulse">
+        ⭐ 恭喜通关！你是真正的英雄！⭐
+      </div>
+    )}
+  </div>
+</div>
+```
 
-        function handleInput(e) {
-            if (!isPlaying) return;
-            e.preventDefault(); 
+);
+};
 
-            if (e.type.startsWith('touch')) {
-                input.x = e.touches[0].clientX;
-                input.y = e.touches[0].clientY;
-            } else {
-                input.x = e.clientX;
-                input.y = e.clientY;
-            }
-        }
-
-        function update() {
-            if (!isPlaying) return;
-
-            // 1. 更新蜜蜂 (平滑跟随)
-            const dx = input.x - bee.x;
-            const dy = input.y - bee.y;
-            bee.x += dx * 0.12; 
-            bee.y += dy * 0.12;
-
-            // 2. 更新小狗 AI (智能优化版)
-            dog.changeDirTimer--;
-            
-            // 计算距离
-            const distToBee = getDistance(bee.x, bee.y, dog.x, dog.y);
-            
-            // --- 基础运动决策 ---
-            let targetVx = 0;
-            let targetVy = 0;
-            let isFleeing = false;
-
-            if (distToBee < dog.fleeDistance) {
-                 isFleeing = true;
-                 const runAngle = Math.atan2(dog.y - bee.y, dog.x - bee.x);
-                 const speed = dog.baseSpeed * dog.panicFactor;
-                 targetVx = Math.cos(runAngle) * speed;
-                 targetVy = Math.sin(runAngle) * speed;
-                 dog.changeDirTimer = 10; 
-            } else if (dog.changeDirTimer <= 0) {
-                // 随机闲逛
-                const angle = Math.random() * Math.PI * 2;
-                targetVx = Math.cos(angle) * dog.baseSpeed;
-                targetVy = Math.sin(angle) * dog.baseSpeed;
-                dog.changeDirTimer = Math.random() * 60 + 30; 
-            } else {
-                // 保持现有趋势 (稍微加点之前的速度，让转向平滑)
-                targetVx = dog.vx;
-                targetVy = dog.vy;
-            }
-
-            // --- 关键优化 1：墙壁排斥力 (Wall Repulsion) ---
-            // 越靠近墙，推离墙的力越大。这会让小狗沿着墙滑行，而不是撞死。
-            const wallMargin = 150; 
-            const wallForce = 0.8;
-            
-            if (dog.x < wallMargin) targetVx += wallForce * (1 + (wallMargin - dog.x)/50);
-            if (dog.x > width - wallMargin) targetVx -= wallForce * (1 + (dog.x - (width - wallMargin))/50);
-            if (dog.y < wallMargin) targetVy += wallForce * (1 + (wallMargin - dog.y)/50);
-            if (dog.y > height - wallMargin) targetVy -= wallForce * (1 + (dog.y - (height - wallMargin))/50);
-
-            // --- 关键优化 2：防卡死机制 (Anti-Stuck) ---
-            // 如果蜜蜂很近，且小狗速度几乎为0（被逼入死角卡住了）
-            // 强制触发一次冲向屏幕中心的爆发
-            const currentSpeed = Math.hypot(dog.vx, dog.vy);
-            
-            if (isFleeing && currentSpeed < 0.5) {
-                dog.stuckTimer++;
-            } else {
-                dog.stuckTimer = 0;
-            }
-
-            // 如果卡住超过 10 帧
-            if (dog.stuckTimer > 10) {
-                const angleToCenter = Math.atan2(height/2 - dog.y, width/2 - dog.x);
-                // 爆发速度
-                dog.vx = Math.cos(angleToCenter) * dog.baseSpeed * 4;
-                dog.vy = Math.sin(angleToCenter) * dog.baseSpeed * 4;
-                dog.stuckTimer = -20; // 冷却时间，防止连续触发
-                return; // 这一帧直接应用爆发速度，跳过平滑处理
-            }
-
-            // --- 物理更新 ---
-            // 平滑应用目标速度 (惯性)
-            const inertia = isFleeing ? 0.15 : 0.05;
-            dog.vx += (targetVx - dog.vx) * inertia;
-            dog.vy += (targetVy - dog.vy) * inertia;
-
-            // 限制最大速度 (防止排斥力无限叠加)
-            const maxSpeed = dog.baseSpeed * dog.panicFactor * 1.5;
-            const newSpeed = Math.hypot(dog.vx, dog.vy);
-            if (newSpeed > maxSpeed) {
-                dog.vx = (dog.vx / newSpeed) * maxSpeed;
-                dog.vy = (dog.vy / newSpeed) * maxSpeed;
-            }
-
-            dog.x += dog.vx;
-            dog.y += dog.vy;
-
-            // 边界硬限制 (Hard Limit)
-            // 不再全速反弹，而是稍微损失能量，防止震荡
-            if (dog.x < dog.size/2) { dog.x = dog.size/2; dog.vx *= -0.5; }
-            if (dog.x > width - dog.size/2) { dog.x = width - dog.size/2; dog.vx *= -0.5; }
-            if (dog.y < dog.size/2) { dog.y = dog.size/2; dog.vy *= -0.5; }
-            if (dog.y > height - dog.size/2) { dog.y = height - dog.size/2; dog.vy *= -0.5; }
-
-            // 3. 碰撞检测
-            if (distToBee < (bee.size/2 + dog.size/2) * 0.7) {
-                gameWin();
-            }
-        }
-
-        function draw() {
-            // 绘制背景 (从缓存 Canvas)
-            if (bgCanvas.width > 0 && bgCanvas.height > 0) {
-                ctx.drawImage(bgCanvas, 0, 0);
-            } else {
-                ctx.fillStyle = '#7CFC00';
-                ctx.fillRect(0, 0, width, height);
-            }
-
-            // 绘制小狗
-            ctx.save();
-            ctx.translate(dog.x, dog.y);
-            if (dog.vx > 0) ctx.scale(-1, 1); 
-            
-            ctx.shadowColor = "rgba(0,0,0,0.2)";
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetY = 10;
-            
-            ctx.font = `${dog.size}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(dog.emoji, 0, 0);
-            ctx.restore();
-
-            // 绘制蜜蜂
-            ctx.save();
-            ctx.translate(bee.x, bee.y);
-            const shake = Math.sin(Date.now() / 50) * 3; 
-            ctx.rotate(shake * Math.PI / 180);
-            
-            ctx.shadowColor = "rgba(0,0,0,0.3)";
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetY = 15;
-
-            ctx.font = `${bee.size}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(bee.emoji, 0, 0);
-            ctx.restore();
-        }
-
-        function gameWin() {
-            isPlaying = false;
-            gameHud.classList.add('hidden');
-            winScreen.classList.remove('hidden');
-        }
-
-        function getDistance(x1, y1, x2, y2) {
-            return Math.hypot(x2 - x1, y2 - y1);
-        }
-
-        function animate() {
-            update();
-            draw();
-            animationId = requestAnimationFrame(animate);
-        }
-
-        // 启动
-        init();
-
-    </script>
-</body>
-</html>
+export default TextAdventureGame;
