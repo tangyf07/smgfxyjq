@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>蜜蜂追小狗</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB; /* 天空蓝兜底 */
+            font-family: 'Arial', sans-serif;
+            touch-action: none; /* 防止移动端滚动 */
+            user-select: none;
+        }
+        #gameCanvas {
+            display: block;
+        }
+        /* UI 层样式 */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        /* 菜单面板 */
+        .menu-panel {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            pointer-events: auto; /* 允许点击按钮 */
+            max-width: 90%;
+            border: 4px solid #4CAF50;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-easy { background-color: #8BC34A; }
+        .btn-medium { background-color: #FF9800; }
+        .btn-hard { background-color: #F44336; }
+
+        .hidden { display: none !important; }
+        
+        #win-screen {
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+        }
+        .code-text {
+            font-size: 4rem;
+            color: #FFD700;
+            text-shadow: 0 0 20px #FFD700;
+            font-weight: bold;
+            margin: 20px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 游戏画布 -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI 界面 -->
+    <div id="ui-layer">
+        
+        <!-- 开始菜单 -->
+        <div id="start-menu" class="menu-panel">
+            <h1 class="text-3xl font-bold mb-2 text-green-700">🐝 蜜蜂追小狗 🐶</h1>
+            <p class="text-gray-600 mb-6">选择难度开始游戏</p>
+            
+            <button class="btn btn-easy" onclick="startGame('easy')">简单 (散步)</button>
+            <button class="btn btn-medium" onclick="startGame('medium')">中等 (慢跑)</button>
+            <button class="btn btn-hard" onclick="startGame('hard')">困难 (飞奔)</button>
+        </div>
+
+        <!-- 胜利界面 (初始隐藏) -->
+        <div id="win-screen" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-auto">
+            <h2 class="text-3xl mb-4">🎉 抓到了！</h2>
+            <p class="text-xl">神秘代码是：</p>
+            <div class="code-text">smgfxyjq</div>
+            <button class="btn btn-medium mt-8" style="max-width: 200px;" onclick="showMenu()">返回主菜单</button>
+        </div>
+
+        <!-- 游戏中的提示 (仅在游戏进行时显示) -->
+        <div id="game-hud" class="hidden absolute top-4 left-4 pointer-events-none text-white drop-shadow-md font-bold">
+            当前难度: <span id="difficulty-display"></span>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 用于缓存草地背景的 Canvas (提升性能)
+        const bgCanvas = document.createElement('canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+
+        // UI 元素
+        const startMenu = document.getElementById('start-menu');
+        const winScreen = document.getElementById('win-screen');
+        const gameHud = document.getElementById('game-hud');
+        const difficultyDisplay = document.getElementById('difficulty-display');
+
+        // 游戏状态
+        let isPlaying = false;
+        let width, height;
+        let animationId;
+
+        // 游戏对象
+        const bee = {
+            x: 0, y: 0,
+            size: 50,
+            speed: 0.1, // 跟随鼠标的延迟系数
+            emoji: "🐝"
+        };
+
+        const dog = {
+            x: 0, y: 0,
+            vx: 0, vy: 0,
+            size: 50,
+            baseSpeed: 3,
+            currentSpeed: 3,
+            fleeDistance: 150, // 逃跑触发距离
+            panicFactor: 1.5,  // 逃跑时的速度倍率
+            changeDirTimer: 0,
+            stuckTimer: 0,     // 防卡死计时器
+            emoji: "🐶"
+        };
+
+        const input = { x: 0, y: 0 };
+
+        // 初始化
+        function init() {
+            resize();
+            window.addEventListener('resize', resize);
+            
+            // 输入监听
+            window.addEventListener('mousemove', handleInput);
+            window.addEventListener('touchmove', handleInput, { passive: false });
+            window.addEventListener('touchstart', handleInput, { passive: false });
+
+            // 启动循环
+            animate();
+        }
+
+        function resize() {
+            // 确保宽高至少为1，防止InvalidStateError
+            width = Math.max(window.innerWidth, 100);
+            height = Math.max(window.innerHeight, 100);
+            
+            canvas.width = width;
+            canvas.height = height;
+            bgCanvas.width = width;
+            bgCanvas.height = height;
+            drawGrassBackground(); // 重绘草地
+            
+            // 如果在菜单界面，重置蜜蜂位置到中心
+            if (!isPlaying) {
+                bee.x = width / 2;
+                bee.y = height / 2;
+            }
+        }
+
+        // 绘制草地背景到缓存 Canvas
+        function drawGrassBackground() {
+            // 安全检查
+            if (bgCanvas.width === 0 || bgCanvas.height === 0) return;
+
+            // 1. 铺底色
+            bgCtx.fillStyle = '#7CFC00'; // 草坪绿
+            bgCtx.fillRect(0, 0, width, height);
+            
+            // 2. 随机画 1000 根小草
+            bgCtx.strokeStyle = '#558B2F'; // 深绿色
+            bgCtx.lineWidth = 2;
+            
+            for (let i = 0; i < 1500; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const len = Math.random() * 10 + 5;
+                const angle = (Math.random() - 0.5) * 1; // 稍微倾斜
+                
+                bgCtx.beginPath();
+                bgCtx.moveTo(x, y);
+                bgCtx.lineTo(x + Math.sin(angle) * len, y - Math.cos(angle) * len);
+                bgCtx.stroke();
+            }
+
+            // 3. 随机画几朵小花
+            const flowers = ['🌼', '🌸', '🌻'];
+            bgCtx.font = "20px Arial";
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const flower = flowers[Math.floor(Math.random() * flowers.length)];
+                bgCtx.fillText(flower, x, y);
+            }
+        }
+
+        function startGame(difficulty) {
+            // 设置难度参数
+            switch(difficulty) {
+                case 'easy':
+                    dog.baseSpeed = 2;
+                    dog.fleeDistance = 100;
+                    dog.panicFactor = 1.2;
+                    difficultyDisplay.innerText = "简单";
+                    break;
+                case 'medium':
+                    dog.baseSpeed = 4;
+                    dog.fleeDistance = 180;
+                    dog.panicFactor = 1.6;
+                    difficultyDisplay.innerText = "中等";
+                    break;
+                case 'hard':
+                    dog.baseSpeed = 7;
+                    dog.fleeDistance = 250; // 离很远就开始跑
+                    dog.panicFactor = 2.0; // 跑得飞快
+                    difficultyDisplay.innerText = "困难";
+                    break;
+            }
+
+            // UI 切换
+            startMenu.classList.add('hidden');
+            winScreen.classList.add('hidden');
+            gameHud.classList.remove('hidden');
+
+            // 重置位置
+            input.x = width / 2;
+            input.y = height / 2;
+            bee.x = input.x;
+            bee.y = input.y;
+            resetDog();
+
+            isPlaying = true;
+        }
+
+        function showMenu() {
+            isPlaying = false;
+            startMenu.classList.remove('hidden');
+            winScreen.classList.add('hidden');
+            gameHud.classList.add('hidden');
+        }
+
+        function resetDog() {
+            // 让狗出现在离蜜蜂较远的地方
+            do {
+                dog.x = Math.random() * (width - dog.size * 2) + dog.size;
+                dog.y = Math.random() * (height - dog.size * 2) + dog.size;
+            } while (getDistance(bee.x, bee.y, dog.x, dog.y) < 400);
+            
+            dog.vx = (Math.random() - 0.5) * dog.baseSpeed;
+            dog.vy = (Math.random() - 0.5) * dog.baseSpeed;
+        }
+
+        function handleInput(e) {
+            if (!isPlaying) return;
+            e.preventDefault(); 
+
+            if (e.type.startsWith('touch')) {
+                input.x = e.touches[0].clientX;
+                input.y = e.touches[0].clientY;
+            } else {
+                input.x = e.clientX;
+                input.y = e.clientY;
+            }
+        }
+
+        function update() {
+            if (!isPlaying) return;
+
+            // 1. 更新蜜蜂 (平滑跟随)
+            const dx = input.x - bee.x;
+            const dy = input.y - bee.y;
+            bee.x += dx * 0.12; 
+            bee.y += dy * 0.12;
+
+            // 2. 更新小狗 AI (智能优化版)
+            dog.changeDirTimer--;
+            
+            // 计算距离
+            const distToBee = getDistance(bee.x, bee.y, dog.x, dog.y);
+            
+            // --- 基础运动决策 ---
+            let targetVx = 0;
+            let targetVy = 0;
+            let isFleeing = false;
+
+            if (distToBee < dog.fleeDistance) {
+                 isFleeing = true;
+                 const runAngle = Math.atan2(dog.y - bee.y, dog.x - bee.x);
+                 const speed = dog.baseSpeed * dog.panicFactor;
+                 targetVx = Math.cos(runAngle) * speed;
+                 targetVy = Math.sin(runAngle) * speed;
+                 dog.changeDirTimer = 10; 
+            } else if (dog.changeDirTimer <= 0) {
+                // 随机闲逛
+                const angle = Math.random() * Math.PI * 2;
+                targetVx = Math.cos(angle) * dog.baseSpeed;
+                targetVy = Math.sin(angle) * dog.baseSpeed;
+                dog.changeDirTimer = Math.random() * 60 + 30; 
+            } else {
+                // 保持现有趋势 (稍微加点之前的速度，让转向平滑)
+                targetVx = dog.vx;
+                targetVy = dog.vy;
+            }
+
+            // --- 关键优化 1：墙壁排斥力 (Wall Repulsion) ---
+            // 越靠近墙，推离墙的力越大。这会让小狗沿着墙滑行，而不是撞死。
+            const wallMargin = 150; 
+            const wallForce = 0.8;
+            
+            if (dog.x < wallMargin) targetVx += wallForce * (1 + (wallMargin - dog.x)/50);
+            if (dog.x > width - wallMargin) targetVx -= wallForce * (1 + (dog.x - (width - wallMargin))/50);
+            if (dog.y < wallMargin) targetVy += wallForce * (1 + (wallMargin - dog.y)/50);
+            if (dog.y > height - wallMargin) targetVy -= wallForce * (1 + (dog.y - (height - wallMargin))/50);
+
+            // --- 关键优化 2：防卡死机制 (Anti-Stuck) ---
+            // 如果蜜蜂很近，且小狗速度几乎为0（被逼入死角卡住了）
+            // 强制触发一次冲向屏幕中心的爆发
+            const currentSpeed = Math.hypot(dog.vx, dog.vy);
+            
+            if (isFleeing && currentSpeed < 0.5) {
+                dog.stuckTimer++;
+            } else {
+                dog.stuckTimer = 0;
+            }
+
+            // 如果卡住超过 10 帧
+            if (dog.stuckTimer > 10) {
+                const angleToCenter = Math.atan2(height/2 - dog.y, width/2 - dog.x);
+                // 爆发速度
+                dog.vx = Math.cos(angleToCenter) * dog.baseSpeed * 4;
+                dog.vy = Math.sin(angleToCenter) * dog.baseSpeed * 4;
+                dog.stuckTimer = -20; // 冷却时间，防止连续触发
+                return; // 这一帧直接应用爆发速度，跳过平滑处理
+            }
+
+            // --- 物理更新 ---
+            // 平滑应用目标速度 (惯性)
+            const inertia = isFleeing ? 0.15 : 0.05;
+            dog.vx += (targetVx - dog.vx) * inertia;
+            dog.vy += (targetVy - dog.vy) * inertia;
+
+            // 限制最大速度 (防止排斥力无限叠加)
+            const maxSpeed = dog.baseSpeed * dog.panicFactor * 1.5;
+            const newSpeed = Math.hypot(dog.vx, dog.vy);
+            if (newSpeed > maxSpeed) {
+                dog.vx = (dog.vx / newSpeed) * maxSpeed;
+                dog.vy = (dog.vy / newSpeed) * maxSpeed;
+            }
+
+            dog.x += dog.vx;
+            dog.y += dog.vy;
+
+            // 边界硬限制 (Hard Limit)
+            // 不再全速反弹，而是稍微损失能量，防止震荡
+            if (dog.x < dog.size/2) { dog.x = dog.size/2; dog.vx *= -0.5; }
+            if (dog.x > width - dog.size/2) { dog.x = width - dog.size/2; dog.vx *= -0.5; }
+            if (dog.y < dog.size/2) { dog.y = dog.size/2; dog.vy *= -0.5; }
+            if (dog.y > height - dog.size/2) { dog.y = height - dog.size/2; dog.vy *= -0.5; }
+
+            // 3. 碰撞检测
+            if (distToBee < (bee.size/2 + dog.size/2) * 0.7) {
+                gameWin();
+            }
+        }
+
+        function draw() {
+            // 绘制背景 (从缓存 Canvas)
+            if (bgCanvas.width > 0 && bgCanvas.height > 0) {
+                ctx.drawImage(bgCanvas, 0, 0);
+            } else {
+                ctx.fillStyle = '#7CFC00';
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            // 绘制小狗
+            ctx.save();
+            ctx.translate(dog.x, dog.y);
+            if (dog.vx > 0) ctx.scale(-1, 1); 
+            
+            ctx.shadowColor = "rgba(0,0,0,0.2)";
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetY = 10;
+            
+            ctx.font = `${dog.size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(dog.emoji, 0, 0);
+            ctx.restore();
+
+            // 绘制蜜蜂
+            ctx.save();
+            ctx.translate(bee.x, bee.y);
+            const shake = Math.sin(Date.now() / 50) * 3; 
+            ctx.rotate(shake * Math.PI / 180);
+            
+            ctx.shadowColor = "rgba(0,0,0,0.3)";
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetY = 15;
+
+            ctx.font = `${bee.size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(bee.emoji, 0, 0);
+            ctx.restore();
+        }
+
+        function gameWin() {
+            isPlaying = false;
+            gameHud.classList.add('hidden');
+            winScreen.classList.remove('hidden');
+        }
+
+        function getDistance(x1, y1, x2, y2) {
+            return Math.hypot(x2 - x1, y2 - y1);
+        }
+
+        function animate() {
+            update();
+            draw();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // 启动
+        init();
+
+    </script>
+</body>
+</html>
