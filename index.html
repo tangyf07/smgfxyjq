@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>汤圆的论坛 | 专注技术分享</title>
+    <title>汤圆的论坛 | 云端同步版</title>
     <style>
-        /* --- 1. 全局样式 (CSS) --- */
+        /* --- CSS 样式部分 (保持美观) --- */
         :root {
-            --primary-color: #3b82f6; /* 主题蓝 */
+            --primary-color: #3b82f6;
             --bg-color: #f3f4f6;
             --card-bg: #ffffff;
             --text-main: #1f2937;
@@ -23,7 +23,6 @@
             line-height: 1.6;
         }
 
-        /* 顶部导航栏 */
         header {
             background-color: var(--card-bg);
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
@@ -49,6 +48,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            cursor: pointer;
         }
 
         .admin-btn {
@@ -67,7 +67,6 @@
             color: white;
         }
 
-        /* 主体布局 */
         main {
             max-width: 800px;
             margin: 30px auto;
@@ -75,7 +74,14 @@
             min-height: 80vh;
         }
 
-        /* 文章列表卡片 */
+        /* 状态提示 */
+        .loading-state, .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+
+        /* 文章卡片 */
         .post-card {
             background: var(--card-bg);
             border-radius: 12px;
@@ -84,6 +90,7 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             cursor: pointer;
             transition: transform 0.2s;
+            position: relative;
         }
 
         .post-card:hover {
@@ -112,12 +119,18 @@
             overflow: hidden;
         }
 
-        /* 文章详情页样式 */
+        /* 详情页 */
         .detail-view {
             background: var(--card-bg);
             border-radius: 12px;
             padding: 40px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .back-btn {
@@ -133,13 +146,10 @@
             margin: 30px 0;
             border-bottom: 1px solid #eee;
             padding-bottom: 30px;
-            white-space: pre-wrap; /* 保留换行符 */
+            white-space: pre-wrap;
         }
 
-        /* 互动区域 (点赞/评论) */
-        .interaction-area {
-            margin-top: 20px;
-        }
+        .interaction-area { margin-top: 20px; }
 
         .like-btn {
             background: #ffe4e6;
@@ -155,18 +165,9 @@
             transition: transform 0.2s;
         }
 
-        .like-btn:hover {
-            transform: scale(1.05);
-        }
+        .like-btn:hover { transform: scale(1.05); }
 
-        .like-btn.liked {
-            background: #e11d48;
-            color: white;
-        }
-
-        .comment-section {
-            margin-top: 30px;
-        }
+        .comment-section { margin-top: 30px; }
 
         .comment-input {
             width: 100%;
@@ -176,10 +177,7 @@
             margin-bottom: 10px;
             resize: vertical;
             font-family: inherit;
-        }
-
-        .comment-list {
-            margin-top: 20px;
+            box-sizing: border-box;
         }
 
         .comment-item {
@@ -195,11 +193,13 @@
             font-size: 0.85rem;
             color: var(--text-light);
             margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
         }
 
-        /* 管理员发布弹窗 */
+        /* 通用弹窗样式 */
         .modal {
-            display: none; /* 默认隐藏 */
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -211,40 +211,37 @@
             z-index: 1000;
         }
 
+        .modal.active { display: flex; }
+
         .modal-content {
             background: white;
             padding: 30px;
             border-radius: 12px;
             width: 90%;
-            max-width: 600px;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
         .form-group input, .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;
         }
 
         .btn-primary {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
+            background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;
+        }
+        .btn-cancel {
+            background: transparent; border: none; cursor: pointer; margin-right: 10px; color: #666;
         }
 
+        /* 简单的 Toast 提示 */
+        #toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #333; color: white; padding: 10px 20px; border-radius: 30px;
+            opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2000;
+        }
+        #toast.show { opacity: 1; }
     </style>
 </head>
 <body>
@@ -252,203 +249,329 @@
     <!-- 导航栏 -->
     <header>
         <div class="nav-container">
-            <a href="#" class="logo" onclick="renderHome()">
-                <span>🥣</span> 汤圆的论坛
-            </a>
-            <button class="admin-btn" onclick="openAdminPanel()">写文章 (仅管理员)</button>
+            <div class="logo" onclick="app.goHome()">
+                <span>☁️</span> 汤圆的云论坛
+            </div>
+            <button class="admin-btn" onclick="app.openLoginModal()">写文章 (仅管理员)</button>
         </div>
     </header>
 
-    <!-- 主内容区：JS会在这里渲染内容 -->
-    <main id="app">
-        <!-- 内容会通过 JS 动态插入 -->
+    <!-- 主内容区 -->
+    <main id="mainContainer">
+        <div class="loading-state">🚀 正在连接云端数据...</div>
     </main>
 
-    <!-- 管理员发布文章的弹窗 -->
-    <div id="adminModal" class="modal">
+    <!-- 1. 登录弹窗 -->
+    <div id="loginModal" class="modal">
         <div class="modal-content">
-            <h2>发布新博客</h2>
+            <h3>🔐 管理员验证</h3>
+            <p style="font-size:0.9rem; color:#666; margin-bottom:15px;">请输入密码以验证身份 (默认: admin666)</p>
+            <div class="form-group">
+                <input type="password" id="adminPassword" placeholder="请输入密码">
+            </div>
+            <div style="text-align: right;">
+                <button class="btn-cancel" onclick="app.closeModal('loginModal')">取消</button>
+                <button class="btn-primary" onclick="app.checkLogin()">验证</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 写文章弹窗 -->
+    <div id="writeModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h3>📝 发布新博客</h3>
             <div class="form-group">
                 <label>标题</label>
                 <input type="text" id="postTitle" placeholder="输入文章标题...">
             </div>
             <div class="form-group">
                 <label>内容</label>
-                <textarea id="postContent" rows="10" placeholder="在这里写下你的教程..."></textarea>
+                <textarea id="postContent" rows="8" placeholder="在这里写下你的教程..."></textarea>
             </div>
             <div style="text-align: right;">
-                <button onclick="closeAdminPanel()" style="background:transparent; border:none; cursor:pointer; margin-right:10px;">取消</button>
-                <button class="btn-primary" onclick="publishPost()">发布</button>
+                <button class="btn-cancel" onclick="app.closeModal('writeModal')">取消</button>
+                <button class="btn-primary" onclick="app.publishPost()">发布到云端</button>
             </div>
         </div>
     </div>
 
-    <script>
-        /* --- 2. 逻辑控制 (JS) --- */
+    <!-- 提示框 -->
+    <div id="toast">操作成功</div>
 
-        // 模拟数据库：初始文章数据
-        // 在真实项目中，这些数据会从服务器获取
-        const defaultPosts = [
-            {
-                id: 1,
-                title: "欢迎来到汤圆的论坛！",
-                date: "2023-12-23",
-                content: "这是我的第一个个人论坛。在这里，我会分享关于前端开发、网页搭建的所有教程。\n\n目前的网站是基于静态页面的，但我实现了一个模拟的评论系统。欢迎大家试用！",
-                likes: 12,
-                comments: [
-                    { user: "访客A", text: "博主好厉害！期待更新。" }
-                ]
-            },
-            {
-                id: 2,
-                title: "如何从零开始搭建网页？",
-                date: "2023-12-24",
-                content: "搭建网页其实只需要三个文件：HTML、CSS 和 JavaScript。\n\n1. HTML 是骨架\n2. CSS 是皮肤\n3. JS 是灵魂\n\n关注我，下一期详细讲解！",
-                likes: 5,
-                comments: []
+    <!-- 引入 Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // 修复：添加 signInWithCustomToken 到 import 列表
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // --- 1. Firebase 初始化 ---
+        // 使用系统提供的配置
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+        
+        const firebaseApp = initializeApp(firebaseConfig);
+        const db = getFirestore(firebaseApp);
+        const auth = getAuth(firebaseApp);
+
+        // 数据库路径: artifacts/{appId}/public/data/posts
+        const POSTS_COLLECTION = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
+
+        // 应用状态管理
+        const state = {
+            posts: [],
+            currentPostId: null,
+            isAdmin: false
+        };
+
+        // --- 2. 核心逻辑 ---
+        
+        // 初始化应用
+        async function init() {
+            try {
+                // 先匿名登录，确保有权限读写数据库
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                // 监听数据库变化 (Real-time!)
+                // 使用 onSnapshot，一旦云端数据变了，这里会自动触发
+                // 注意：这里为了简化不使用 orderBy，我们在内存中排序
+                onSnapshot(POSTS_COLLECTION, (snapshot) => {
+                    const posts = [];
+                    snapshot.forEach((doc) => {
+                        posts.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    // 按时间倒序排列 (新的在前)
+                    state.posts = posts.sort((a, b) => b.createdAt - a.createdAt);
+                    
+                    // 如果正在看详情页，刷新详情页，否则刷新列表
+                    if (state.currentPostId) {
+                        renderDetail(state.currentPostId);
+                    } else {
+                        renderHome();
+                    }
+                }, (error) => {
+                    console.error("数据库监听失败:", error);
+                    document.getElementById('mainContainer').innerHTML = `<div class="empty-state">❌ 连接云端失败，请稍后刷新重试</div>`;
+                });
+
+            } catch (err) {
+                console.error("登录失败:", err);
             }
-        ];
+        }
 
-        // 从 LocalStorage 加载数据 (如果没有则使用默认数据)
-        // 这样你发布的文章刷新后不会消失
-        let posts = JSON.parse(localStorage.getItem('tangyuan_posts')) || defaultPosts;
-
-        // --- 核心功能函数 ---
-
-        // 1. 渲染首页（文章列表）
+        // 渲染首页列表
         function renderHome() {
-            const app = document.getElementById('app');
-            let html = '';
+            state.currentPostId = null;
+            const container = document.getElementById('mainContainer');
             
-            // 遍历文章数组，生成 HTML
-            posts.forEach(post => {
+            if (state.posts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>👋 还没有文章</h3>
+                        <p>点击右上角 "写文章" 发布第一篇博客吧！</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+            state.posts.forEach(post => {
+                const commentCount = post.comments ? post.comments.length : 0;
+                // 将时间戳转为可读日期
+                const dateStr = new Date(post.createdAt).toLocaleDateString();
+
                 html += `
-                    <article class="post-card" onclick="renderDetail(${post.id})">
+                    <article class="post-card" onclick="window.app.viewPost('${post.id}')">
                         <div class="post-meta">
-                            <span>📅 ${post.date}</span>
-                            <span>❤️ ${post.likes} 点赞</span>
-                            <span>💬 ${post.comments.length} 评论</span>
+                            <span>📅 ${dateStr}</span>
+                            <span>❤️ ${post.likes || 0}</span>
+                            <span>💬 ${commentCount}</span>
                         </div>
-                        <h2 class="post-title">${post.title}</h2>
-                        <div class="post-excerpt">${post.content}</div>
+                        <h2 class="post-title">${escapeHtml(post.title)}</h2>
+                        <div class="post-excerpt">${escapeHtml(post.content)}</div>
                     </article>
                 `;
             });
-
-            app.innerHTML = html;
+            container.innerHTML = html;
         }
 
-        // 2. 渲染详情页
+        // 渲染详情页
         function renderDetail(id) {
-            const post = posts.find(p => p.id === id);
-            if (!post) return;
+            const post = state.posts.find(p => p.id === id);
+            if (!post) return renderHome();
 
-            const app = document.getElementById('app');
+            state.currentPostId = id;
+            const container = document.getElementById('mainContainer');
+            const dateStr = new Date(post.createdAt).toLocaleDateString() + ' ' + new Date(post.createdAt).toLocaleTimeString();
             
-            // 生成评论列表 HTML
-            const commentsHtml = post.comments.map(c => `
+            // 处理评论列表
+            const comments = post.comments || [];
+            const commentsHtml = comments.map(c => `
                 <div class="comment-item">
-                    <div class="comment-header">👤 ${c.user}</div>
-                    <div>${c.text}</div>
+                    <div class="comment-header">
+                        <span>👤 ${escapeHtml(c.user)}</span>
+                        <span style="font-weight:normal; font-size:0.8em">${new Date(c.time).toLocaleDateString()}</span>
+                    </div>
+                    <div>${escapeHtml(c.text)}</div>
                 </div>
-            `).join('');
+            `).reverse().join(''); // 最新的评论在上面
 
-            app.innerHTML = `
+            container.innerHTML = `
                 <div class="detail-view">
-                    <div class="back-btn" onclick="renderHome()">← 返回列表</div>
-                    <div class="post-meta">📅 ${post.date}</div>
-                    <h1 class="post-title">${post.title}</h1>
-                    <div class="article-content">${post.content}</div>
+                    <div class="back-btn" onclick="window.app.goHome()">← 返回列表</div>
+                    <div class="post-meta">📅 ${dateStr}</div>
+                    <h1 class="post-title">${escapeHtml(post.title)}</h1>
+                    <div class="article-content">${escapeHtml(post.content)}</div>
                     
                     <div class="interaction-area">
-                        <button class="like-btn" onclick="addLike(${post.id})">
-                            ❤️ 点赞 (${post.likes})
+                        <button class="like-btn ${post.likes > 0 ? 'liked' : ''}" onclick="window.app.addLike('${post.id}')">
+                            ❤️ 点赞 (${post.likes || 0})
                         </button>
                     </div>
 
                     <div class="comment-section">
-                        <h3>评论区 (${post.comments.length})</h3>
+                        <h3>评论区 (${comments.length})</h3>
                         <textarea id="commentInput" class="comment-input" placeholder="写下你的想法..."></textarea>
-                        <button class="btn-primary" onclick="addComment(${post.id})">发表评论</button>
+                        <button class="btn-primary" onclick="window.app.addComment('${post.id}')">发表评论</button>
                         
-                        <div class="comment-list">
-                            ${commentsHtml}
+                        <div class="comment-list" style="margin-top:20px;">
+                            ${commentsHtml.length > 0 ? commentsHtml : '<div style="color:#999">暂无评论，快来抢沙发！</div>'}
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        // 3. 点赞功能
-        function addLike(id) {
-            const post = posts.find(p => p.id === id);
-            post.likes += 1;
-            saveData(); // 保存到本地存储
-            renderDetail(id); // 重新渲染页面更新数字
-        }
-
-        // 4. 评论功能
-        function addComment(id) {
-            const input = document.getElementById('commentInput');
-            const text = input.value.trim();
-            if (!text) return alert("评论不能为空哦！");
-
-            const post = posts.find(p => p.id === id);
-            post.comments.unshift({ user: "热心访客", text: text }); // 把新评论加到最前面
+        // --- 3. 全局暴露给 HTML 调用的方法 ---
+        window.app = {
+            goHome: () => renderHome(),
             
-            saveData();
-            renderDetail(id);
-        }
+            viewPost: (id) => renderDetail(id),
 
-        // 5. 管理员：打开写作弹窗
-        function openAdminPanel() {
-            // 简单的密码保护
-            const password = prompt("请输入管理员密码：");
-            if (password === "admin666") { // 你的密码是 admin666
-                document.getElementById('adminModal').style.display = 'flex';
-            } else {
-                alert("密码错误，你不是汤圆本人吧？🚫");
+            // 打开登录弹窗
+            openLoginModal: () => {
+                if (state.isAdmin) {
+                    document.getElementById('writeModal').classList.add('active');
+                } else {
+                    document.getElementById('loginModal').classList.add('active');
+                    document.getElementById('adminPassword').value = '';
+                }
+            },
+
+            // 验证密码
+            checkLogin: () => {
+                const pass = document.getElementById('adminPassword').value;
+                if (pass === 'admin666') {
+                    state.isAdmin = true;
+                    showToast('✅ 验证成功');
+                    closeModal('loginModal');
+                    document.getElementById('writeModal').classList.add('active');
+                } else {
+                    showToast('❌ 密码错误');
+                }
+            },
+
+            closeModal: closeModal,
+
+            // 发布文章 (写数据库)
+            publishPost: async () => {
+                const title = document.getElementById('postTitle').value;
+                const content = document.getElementById('postContent').value;
+
+                if (!title || !content) return showToast('标题和内容不能为空');
+
+                try {
+                    // 向 Firestore 添加文档
+                    await addDoc(POSTS_COLLECTION, {
+                        title: title,
+                        content: content,
+                        createdAt: Date.now(),
+                        likes: 0,
+                        comments: []
+                    });
+                    
+                    showToast('🎉 发布成功！');
+                    closeModal('writeModal');
+                    // 清空
+                    document.getElementById('postTitle').value = '';
+                    document.getElementById('postContent').value = '';
+                    renderHome();
+                } catch (e) {
+                    console.error(e);
+                    showToast('发布失败: ' + e.message);
+                }
+            },
+
+            // 点赞 (更新数据库)
+            addLike: async (id) => {
+                const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', id);
+                try {
+                    await updateDoc(postRef, {
+                        likes: increment(1)
+                    });
+                    // 不需要手动更新 UI，onSnapshot 会自动处理
+                } catch (e) {
+                    console.error(e);
+                    showToast('点赞失败');
+                }
+            },
+
+            // 评论 (更新数据库)
+            addComment: async (id) => {
+                const input = document.getElementById('commentInput');
+                const text = input.value.trim();
+                if (!text) return showToast('评论不能为空');
+
+                const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', id);
+                const newComment = {
+                    user: '热心访客', // 这里可以扩展成随机名字
+                    text: text,
+                    time: Date.now()
+                };
+
+                try {
+                    await updateDoc(postRef, {
+                        comments: arrayUnion(newComment)
+                    });
+                    showToast('💬 评论已提交');
+                    input.value = '';
+                } catch (e) {
+                    console.error(e);
+                    showToast('评论失败');
+                }
             }
+        };
+
+        // 辅助函数
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
         }
 
-        function closeAdminPanel() {
-            document.getElementById('adminModal').style.display = 'none';
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // 6. 管理员：发布文章
-        function publishPost() {
-            const title = document.getElementById('postTitle').value;
-            const content = document.getElementById('postContent').value;
-
-            if (!title || !content) return alert("标题和内容都得写哦！");
-
-            const newPost = {
-                id: Date.now(), // 用当前时间戳做唯一ID
-                title: title,
-                date: new Date().toLocaleDateString(),
-                content: content,
-                likes: 0,
-                comments: []
-            };
-
-            posts.unshift(newPost); // 加到数组最前面
-            saveData();
-            closeAdminPanel();
-            renderHome(); // 回到首页
-            
-            // 清空输入框
-            document.getElementById('postTitle').value = '';
-            document.getElementById('postContent').value = '';
+        // 简单的 HTML 转义防止 XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+                .replace(/\n/g, "<br>");
         }
 
-        // 7. 数据持久化 (保存到 LocalStorage)
-        function saveData() {
-            localStorage.setItem('tangyuan_posts', JSON.stringify(posts));
-        }
-
-        // --- 初始化 ---
-        renderHome(); // 打开网页时显示首页
-
+        // 启动！
+        init();
     </script>
 </body>
 </html>
