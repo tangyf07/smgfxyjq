@@ -3,231 +3,452 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的个人仪表盘</title>
+    <title>汤圆的论坛 | 专注技术分享</title>
     <style>
-        /* --- CSS 部分 --- */
-        
-        /* 1. 全局样式与背景图 */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        /* --- 1. 全局样式 (CSS) --- */
+        :root {
+            --primary-color: #3b82f6; /* 主题蓝 */
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-light: #6b7280;
         }
 
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            height: 100vh;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            /* 使用高质量的风景图作为背景 */
-            background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80') no-repeat center center/cover;
-            /* 给背景加一层黑色遮罩，让文字更清晰 */
-            position: relative;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
         }
 
-        /* 黑色半透明遮罩 */
-        body::after {
-            content: '';
-            position: absolute;
+        /* 顶部导航栏 */
+        header {
+            background-color: var(--card-bg);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 1rem 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-btn {
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .admin-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* 主体布局 */
+        main {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 0 20px;
+            min-height: 80vh;
+        }
+
+        /* 文章列表卡片 */
+        .post-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .post-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .post-meta {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 10px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .post-title {
+            font-size: 1.5rem;
+            margin: 0 0 10px 0;
+            color: #111;
+        }
+
+        .post-excerpt {
+            color: #4b5563;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* 文章详情页样式 */
+        .detail-view {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .article-content {
+            font-size: 1.1rem;
+            margin: 30px 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 30px;
+            white-space: pre-wrap; /* 保留换行符 */
+        }
+
+        /* 互动区域 (点赞/评论) */
+        .interaction-area {
+            margin-top: 20px;
+        }
+
+        .like-btn {
+            background: #ffe4e6;
+            color: #e11d48;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: transform 0.2s;
+        }
+
+        .like-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .like-btn.liked {
+            background: #e11d48;
+            color: white;
+        }
+
+        .comment-section {
+            margin-top: 30px;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .comment-list {
+            margin-top: 20px;
+        }
+
+        .comment-item {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        
+        .comment-header {
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+
+        /* 管理员发布弹窗 */
+        .modal {
+            display: none; /* 默认隐藏 */
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.4); /* 40% 透明度的黑色 */
-            z-index: -1;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
         }
 
-        /* 2. 时间样式 */
-        #time {
-            font-size: 8rem; /* 超大字体 */
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.5); /* 文字阴影 */
-        }
-
-        /* 3. 问候语样式 */
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 40px;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
-        }
-
-        /* 可编辑区域的样式 (名字和任务) */
-        [contenteditable="true"] {
-            outline: none; /* 去掉点击时的蓝框 */
-            border-bottom: 2px solid transparent;
-            padding: 0 5px;
-            transition: border-bottom 0.3s ease;
-        }
-
-        [contenteditable="true"]:focus {
-            border-bottom: 2px solid #fff; /* 编辑时显示下划线 */
-        }
-
-        /* 4. 专注任务区域 */
-        h2 {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            opacity: 0.9;
-        }
-
-        #focus {
-            font-size: 2.5rem;
-            font-weight: bold;
-        }
-
-        /* 5. 玻璃拟态卡片 (高级视觉效果) */
-        .glass-container {
-            background: rgba(255, 255, 255, 0.1); /* 极淡的白色背景 */
-            backdrop-filter: blur(10px); /* 毛玻璃模糊效果 */
-            padding: 40px 60px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 15px 25px rgba(0,0,0,0.2);
-            max-width: 800px;
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
             width: 90%;
-            animation: fadeIn 1.5s ease-in-out;
+            max-width: 600px;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .form-group {
+            margin-bottom: 15px;
         }
 
-        @media (max-width: 768px) {
-            #time { font-size: 4rem; }
-            h1 { font-size: 1.5rem; }
-            h2 { font-size: 1.2rem; }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
         }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="glass-container">
-        <!-- 时间显示 -->
-        <time id="time"></time>
-        
-        <!-- 问候语 -->
-        <h1>
-            <span id="greeting"></span>, 
-            <span id="name" contenteditable="true">请输入名字</span>
-        </h1>
+    <!-- 导航栏 -->
+    <header>
+        <div class="nav-container">
+            <a href="#" class="logo" onclick="renderHome()">
+                <span>🥣</span> 汤圆的论坛
+            </a>
+            <button class="admin-btn" onclick="openAdminPanel()">写文章 (仅管理员)</button>
+        </div>
+    </header>
 
-        <!-- 专注任务 -->
-        <h2>你今天的首要任务是：</h2>
-        <div id="focus" contenteditable="true">点击输入任务</div>
+    <!-- 主内容区：JS会在这里渲染内容 -->
+    <main id="app">
+        <!-- 内容会通过 JS 动态插入 -->
+    </main>
+
+    <!-- 管理员发布文章的弹窗 -->
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
+            <h2>发布新博客</h2>
+            <div class="form-group">
+                <label>标题</label>
+                <input type="text" id="postTitle" placeholder="输入文章标题...">
+            </div>
+            <div class="form-group">
+                <label>内容</label>
+                <textarea id="postContent" rows="10" placeholder="在这里写下你的教程..."></textarea>
+            </div>
+            <div style="text-align: right;">
+                <button onclick="closeAdminPanel()" style="background:transparent; border:none; cursor:pointer; margin-right:10px;">取消</button>
+                <button class="btn-primary" onclick="publishPost()">发布</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        /* --- JavaScript 部分 --- */
+        /* --- 2. 逻辑控制 (JS) --- */
 
-        // 1. 获取 DOM 元素
-        const timeDom = document.getElementById('time');
-        const greetingDom = document.getElementById('greeting');
-        const nameDom = document.getElementById('name');
-        const focusDom = document.getElementById('focus');
+        // 模拟数据库：初始文章数据
+        // 在真实项目中，这些数据会从服务器获取
+        const defaultPosts = [
+            {
+                id: 1,
+                title: "欢迎来到汤圆的论坛！",
+                date: "2023-12-23",
+                content: "这是我的第一个个人论坛。在这里，我会分享关于前端开发、网页搭建的所有教程。\n\n目前的网站是基于静态页面的，但我实现了一个模拟的评论系统。欢迎大家试用！",
+                likes: 12,
+                comments: [
+                    { user: "访客A", text: "博主好厉害！期待更新。" }
+                ]
+            },
+            {
+                id: 2,
+                title: "如何从零开始搭建网页？",
+                date: "2023-12-24",
+                content: "搭建网页其实只需要三个文件：HTML、CSS 和 JavaScript。\n\n1. HTML 是骨架\n2. CSS 是皮肤\n3. JS 是灵魂\n\n关注我，下一期详细讲解！",
+                likes: 5,
+                comments: []
+            }
+        ];
 
-        // 2. 显示时间函数
-        function showTime() {
-            let today = new Date(); // 获取当前时间对象
-            let hour = today.getHours(); // 小时 (0-23)
-            let min = today.getMinutes(); // 分钟
-            let sec = today.getSeconds(); // 秒
+        // 从 LocalStorage 加载数据 (如果没有则使用默认数据)
+        // 这样你发布的文章刷新后不会消失
+        let posts = JSON.parse(localStorage.getItem('tangyuan_posts')) || defaultPosts;
 
-            // 设置 AM 或 PM (可选功能，这里我们用24小时制，但根据需要可以改)
+        // --- 核心功能函数 ---
+
+        // 1. 渲染首页（文章列表）
+        function renderHome() {
+            const app = document.getElementById('app');
+            let html = '';
             
-            // 补零操作：如果数字小于10，在前面加 '0'
-            // 例如：9:5 -> 09:05
-            const addZero = (n) => {
-                return (parseInt(n, 10) < 10 ? '0' : '') + n;
-            }
+            // 遍历文章数组，生成 HTML
+            posts.forEach(post => {
+                html += `
+                    <article class="post-card" onclick="renderDetail(${post.id})">
+                        <div class="post-meta">
+                            <span>📅 ${post.date}</span>
+                            <span>❤️ ${post.likes} 点赞</span>
+                            <span>💬 ${post.comments.length} 评论</span>
+                        </div>
+                        <h2 class="post-title">${post.title}</h2>
+                        <div class="post-excerpt">${post.content}</div>
+                    </article>
+                `;
+            });
 
-            // 将时间输出到屏幕
-            timeDom.innerHTML = `${addZero(hour)}<span>:</span>${addZero(min)}<span>:</span>${addZero(sec)}`;
-
-            // 每1000毫秒(1秒)重新运行一次这个函数
-            setTimeout(showTime, 1000);
+            app.innerHTML = html;
         }
 
-        // 3. 设置背景和问候语 (根据时间变化)
-        function setBgGreet() {
-            let today = new Date();
-            let hour = today.getHours();
+        // 2. 渲染详情页
+        function renderDetail(id) {
+            const post = posts.find(p => p.id === id);
+            if (!post) return;
 
-            if (hour < 12) {
-                // 早上
-                greetingDom.textContent = '早上好';
-            } else if (hour < 18) {
-                // 下午
-                greetingDom.textContent = '下午好';
+            const app = document.getElementById('app');
+            
+            // 生成评论列表 HTML
+            const commentsHtml = post.comments.map(c => `
+                <div class="comment-item">
+                    <div class="comment-header">👤 ${c.user}</div>
+                    <div>${c.text}</div>
+                </div>
+            `).join('');
+
+            app.innerHTML = `
+                <div class="detail-view">
+                    <div class="back-btn" onclick="renderHome()">← 返回列表</div>
+                    <div class="post-meta">📅 ${post.date}</div>
+                    <h1 class="post-title">${post.title}</h1>
+                    <div class="article-content">${post.content}</div>
+                    
+                    <div class="interaction-area">
+                        <button class="like-btn" onclick="addLike(${post.id})">
+                            ❤️ 点赞 (${post.likes})
+                        </button>
+                    </div>
+
+                    <div class="comment-section">
+                        <h3>评论区 (${post.comments.length})</h3>
+                        <textarea id="commentInput" class="comment-input" placeholder="写下你的想法..."></textarea>
+                        <button class="btn-primary" onclick="addComment(${post.id})">发表评论</button>
+                        
+                        <div class="comment-list">
+                            ${commentsHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 3. 点赞功能
+        function addLike(id) {
+            const post = posts.find(p => p.id === id);
+            post.likes += 1;
+            saveData(); // 保存到本地存储
+            renderDetail(id); // 重新渲染页面更新数字
+        }
+
+        // 4. 评论功能
+        function addComment(id) {
+            const input = document.getElementById('commentInput');
+            const text = input.value.trim();
+            if (!text) return alert("评论不能为空哦！");
+
+            const post = posts.find(p => p.id === id);
+            post.comments.unshift({ user: "热心访客", text: text }); // 把新评论加到最前面
+            
+            saveData();
+            renderDetail(id);
+        }
+
+        // 5. 管理员：打开写作弹窗
+        function openAdminPanel() {
+            // 简单的密码保护
+            const password = prompt("请输入管理员密码：");
+            if (password === "admin666") { // 你的密码是 admin666
+                document.getElementById('adminModal').style.display = 'flex';
             } else {
-                // 晚上
-                greetingDom.textContent = '晚上好';
+                alert("密码错误，你不是汤圆本人吧？🚫");
             }
         }
 
-        // 4. 获取名字 (从 Local Storage)
-        function getName() {
-            // 检查浏览器数据库里有没有 'name'
-            if (localStorage.getItem('name') === null) {
-                nameDom.textContent = '[请输入名字]';
-            } else {
-                nameDom.textContent = localStorage.getItem('name');
-            }
+        function closeAdminPanel() {
+            document.getElementById('adminModal').style.display = 'none';
         }
 
-        // 5. 设置名字 (保存到 Local Storage)
-        function setName(e) {
-            // e.type: 事件类型 (keypress 或 blur)
-            if (e.type === 'keypress') {
-                // 如果按下的是回车键 (Enter, key code 13)
-                if (e.which == 13 || e.keyCode == 13) {
-                    localStorage.setItem('name', e.target.innerText); // 保存数据
-                    nameDom.blur(); // 让输入框失去焦点
-                }
-            } else {
-                // 如果是鼠标点到外面去了 (blur 事件)
-                localStorage.setItem('name', e.target.innerText);
-            }
+        // 6. 管理员：发布文章
+        function publishPost() {
+            const title = document.getElementById('postTitle').value;
+            const content = document.getElementById('postContent').value;
+
+            if (!title || !content) return alert("标题和内容都得写哦！");
+
+            const newPost = {
+                id: Date.now(), // 用当前时间戳做唯一ID
+                title: title,
+                date: new Date().toLocaleDateString(),
+                content: content,
+                likes: 0,
+                comments: []
+            };
+
+            posts.unshift(newPost); // 加到数组最前面
+            saveData();
+            closeAdminPanel();
+            renderHome(); // 回到首页
+            
+            // 清空输入框
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postContent').value = '';
         }
 
-        // 6. 获取任务
-        function getFocus() {
-            if (localStorage.getItem('focus') === null) {
-                focusDom.textContent = '[点击输入任务]';
-            } else {
-                focusDom.textContent = localStorage.getItem('focus');
-            }
+        // 7. 数据持久化 (保存到 LocalStorage)
+        function saveData() {
+            localStorage.setItem('tangyuan_posts', JSON.stringify(posts));
         }
 
-        // 7. 设置任务
-        function setFocus(e) {
-            if (e.type === 'keypress') {
-                if (e.which == 13 || e.keyCode == 13) {
-                    localStorage.setItem('focus', e.target.innerText);
-                    focusDom.blur();
-                }
-            } else {
-                localStorage.setItem('focus', e.target.innerText);
-            }
-        }
+        // --- 初始化 ---
+        renderHome(); // 打开网页时显示首页
 
-        // --- 事件监听 ---
-        // 监听用户的键盘输入和鼠标点击离开
-        nameDom.addEventListener('keypress', setName);
-        nameDom.addEventListener('blur', setName);
-        focusDom.addEventListener('keypress', setFocus);
-        focusDom.addEventListener('blur', setFocus);
-
-        // --- 程序入口：运行所有函数 ---
-        showTime();
-        setBgGreet();
-        getName();
-        getFocus();
     </script>
 </body>
 </html>
