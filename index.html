@@ -3,26 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的个人主页</title>
-    <link rel="stylesheet" href="style.css">
+    <title>我的个人仪表盘</title>
+    <style>
+        /* --- CSS 部分 --- */
+        
+        /* 1. 全局样式与背景图 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            /* 使用高质量的风景图作为背景 */
+            background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80') no-repeat center center/cover;
+            /* 给背景加一层黑色遮罩，让文字更清晰 */
+            position: relative;
+        }
+
+        /* 黑色半透明遮罩 */
+        body::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4); /* 40% 透明度的黑色 */
+            z-index: -1;
+        }
+
+        /* 2. 时间样式 */
+        #time {
+            font-size: 8rem; /* 超大字体 */
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.5); /* 文字阴影 */
+        }
+
+        /* 3. 问候语样式 */
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+        }
+
+        /* 可编辑区域的样式 (名字和任务) */
+        [contenteditable="true"] {
+            outline: none; /* 去掉点击时的蓝框 */
+            border-bottom: 2px solid transparent;
+            padding: 0 5px;
+            transition: border-bottom 0.3s ease;
+        }
+
+        [contenteditable="true"]:focus {
+            border-bottom: 2px solid #fff; /* 编辑时显示下划线 */
+        }
+
+        /* 4. 专注任务区域 */
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        #focus {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        /* 5. 玻璃拟态卡片 (高级视觉效果) */
+        .glass-container {
+            background: rgba(255, 255, 255, 0.1); /* 极淡的白色背景 */
+            backdrop-filter: blur(10px); /* 毛玻璃模糊效果 */
+            padding: 40px 60px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 15px 25px rgba(0,0,0,0.2);
+            max-width: 800px;
+            width: 90%;
+            animation: fadeIn 1.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            #time { font-size: 4rem; }
+            h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.2rem; }
+        }
+    </style>
 </head>
 <body>
 
-    <div class="card">
-        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="我的头像" class="avatar">
+    <div class="glass-container">
+        <!-- 时间显示 -->
+        <time id="time"></time>
         
-        <div class="info">
-            <h2>你的名字</h2>
-            <p class="title">前端开发练习生</p>
-            <p class="bio">热衷于学习新技术，正在从零搭建自己的数字花园。</p>
-            
-            <div class="buttons">
-                <a href="#" class="btn primary">联系我</a>
-                <button id="likeBtn" class="btn secondary">点赞 (0)</button>
-            </div>
-        </div>
+        <!-- 问候语 -->
+        <h1>
+            <span id="greeting"></span>, 
+            <span id="name" contenteditable="true">请输入名字</span>
+        </h1>
+
+        <!-- 专注任务 -->
+        <h2>你今天的首要任务是：</h2>
+        <div id="focus" contenteditable="true">点击输入任务</div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        /* --- JavaScript 部分 --- */
+
+        // 1. 获取 DOM 元素
+        const timeDom = document.getElementById('time');
+        const greetingDom = document.getElementById('greeting');
+        const nameDom = document.getElementById('name');
+        const focusDom = document.getElementById('focus');
+
+        // 2. 显示时间函数
+        function showTime() {
+            let today = new Date(); // 获取当前时间对象
+            let hour = today.getHours(); // 小时 (0-23)
+            let min = today.getMinutes(); // 分钟
+            let sec = today.getSeconds(); // 秒
+
+            // 设置 AM 或 PM (可选功能，这里我们用24小时制，但根据需要可以改)
+            
+            // 补零操作：如果数字小于10，在前面加 '0'
+            // 例如：9:5 -> 09:05
+            const addZero = (n) => {
+                return (parseInt(n, 10) < 10 ? '0' : '') + n;
+            }
+
+            // 将时间输出到屏幕
+            timeDom.innerHTML = `${addZero(hour)}<span>:</span>${addZero(min)}<span>:</span>${addZero(sec)}`;
+
+            // 每1000毫秒(1秒)重新运行一次这个函数
+            setTimeout(showTime, 1000);
+        }
+
+        // 3. 设置背景和问候语 (根据时间变化)
+        function setBgGreet() {
+            let today = new Date();
+            let hour = today.getHours();
+
+            if (hour < 12) {
+                // 早上
+                greetingDom.textContent = '早上好';
+            } else if (hour < 18) {
+                // 下午
+                greetingDom.textContent = '下午好';
+            } else {
+                // 晚上
+                greetingDom.textContent = '晚上好';
+            }
+        }
+
+        // 4. 获取名字 (从 Local Storage)
+        function getName() {
+            // 检查浏览器数据库里有没有 'name'
+            if (localStorage.getItem('name') === null) {
+                nameDom.textContent = '[请输入名字]';
+            } else {
+                nameDom.textContent = localStorage.getItem('name');
+            }
+        }
+
+        // 5. 设置名字 (保存到 Local Storage)
+        function setName(e) {
+            // e.type: 事件类型 (keypress 或 blur)
+            if (e.type === 'keypress') {
+                // 如果按下的是回车键 (Enter, key code 13)
+                if (e.which == 13 || e.keyCode == 13) {
+                    localStorage.setItem('name', e.target.innerText); // 保存数据
+                    nameDom.blur(); // 让输入框失去焦点
+                }
+            } else {
+                // 如果是鼠标点到外面去了 (blur 事件)
+                localStorage.setItem('name', e.target.innerText);
+            }
+        }
+
+        // 6. 获取任务
+        function getFocus() {
+            if (localStorage.getItem('focus') === null) {
+                focusDom.textContent = '[点击输入任务]';
+            } else {
+                focusDom.textContent = localStorage.getItem('focus');
+            }
+        }
+
+        // 7. 设置任务
+        function setFocus(e) {
+            if (e.type === 'keypress') {
+                if (e.which == 13 || e.keyCode == 13) {
+                    localStorage.setItem('focus', e.target.innerText);
+                    focusDom.blur();
+                }
+            } else {
+                localStorage.setItem('focus', e.target.innerText);
+            }
+        }
+
+        // --- 事件监听 ---
+        // 监听用户的键盘输入和鼠标点击离开
+        nameDom.addEventListener('keypress', setName);
+        nameDom.addEventListener('blur', setName);
+        focusDom.addEventListener('keypress', setFocus);
+        focusDom.addEventListener('blur', setFocus);
+
+        // --- 程序入口：运行所有函数 ---
+        showTime();
+        setBgGreet();
+        getName();
+        getFocus();
+    </script>
 </body>
 </html>
