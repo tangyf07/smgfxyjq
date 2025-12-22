@@ -12,6 +12,7 @@
             --card-bg: #ffffff;
             --text-main: #1f2937;
             --text-light: #6b7280;
+            --error-color: #ef4444;
         }
 
         body {
@@ -75,10 +76,30 @@
         }
 
         /* 状态提示 */
-        .loading-state, .empty-state {
+        .loading-state, .empty-state, .error-state {
             text-align: center;
             padding: 40px;
             color: var(--text-light);
+            background: white;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .error-state {
+            color: var(--error-color);
+            border: 1px solid #fee2e2;
+        }
+
+        .error-details {
+            font-family: monospace;
+            background: #fef2f2;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            text-align: left;
+            word-break: break-all;
         }
 
         /* 文章卡片 */
@@ -166,6 +187,8 @@
         }
 
         .like-btn:hover { transform: scale(1.05); }
+
+        .like-btn.liked { background: #e11d48; color: white; }
 
         .comment-section { margin-top: 30px; }
 
@@ -258,7 +281,10 @@
 
     <!-- 主内容区 -->
     <main id="mainContainer">
-        <div class="loading-state">🚀 正在连接云端数据...</div>
+        <div class="loading-state">
+            <h3>🚀 正在连接云端数据...</h3>
+            <p>如果长时间没反应，可能是网络问题或配置缺失。</p>
+        </div>
     </main>
 
     <!-- 1. 登录弹窗 -->
@@ -302,66 +328,106 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // 修复：添加 signInWithCustomToken 到 import 列表
+        // 关键修复：确保引入了 signInWithCustomToken
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // --- 1. Firebase 初始化 ---
-        // 使用系统提供的配置
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
-        
-        const firebaseApp = initializeApp(firebaseConfig);
-        const db = getFirestore(firebaseApp);
-        const auth = getAuth(firebaseApp);
-
-        // 数据库路径: artifacts/{appId}/public/data/posts
-        const POSTS_COLLECTION = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
-
-        // 应用状态管理
+        // --- 应用状态管理 ---
         const state = {
             posts: [],
             currentPostId: null,
             isAdmin: false
         };
 
-        // --- 2. 核心逻辑 ---
+        // --- 全局变量定义（防止报错）---
+        let db, auth, POSTS_COLLECTION;
+        // 你的 App ID，如果是本地运行，可以改成任何字符串
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+
+        // --- 核心逻辑 ---
         
-        // 初始化应用
         async function init() {
             try {
-                // 先匿名登录，确保有权限读写数据库
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
+                // 1. 检查配置是否存在
+                if (typeof __firebase_config === 'undefined') {
+                    throw new Error("⚠️ 缺少 Firebase 配置。\n\n如果你是在本地电脑运行，你需要去 firebase.google.com 创建项目，并将配置代码粘贴到这里。\n当前环境无法自动获取配置。");
+                }
+
+                const firebaseConfig = {
+
+     apiKey: "AIzaSyBzVD0XuA8Vw-e-7lKEx3K69UCe6lkDhFQ",
+
+   authDomain: "coffee-spark-ai-barista-8b0e2.firebaseapp.com",
+
+  projectId: "coffee-spark-ai-barista-8b0e2",
+
+  storageBucket: "coffee-spark-ai-barista-8b0e2.firebasestorage.app",
+
+  messagingSenderId: "732057248424",
+
+  appId: "1:732057248424:web:cd43ba3f2d87cc58f3989d"
+
+ };
+
+                // 手动定义 appId，通常用 projectId 即可
+const appId = "tangyuan"; // 记得把这里改成上面 projectId 对应的值
+
+const firebaseApp = initializeApp(firebaseConfig);
+                db = getFirestore(firebaseApp);
+                auth = getAuth(firebaseApp);
+                POSTS_COLLECTION = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
+
+                // 2. 尝试登录
+                // 优先使用 Token 登录（预览环境），失败则回退到匿名登录
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (authErr) {
+                    console.warn("Token 登录失败，尝试匿名登录:", authErr);
                     await signInAnonymously(auth);
                 }
-                
-                // 监听数据库变化 (Real-time!)
-                // 使用 onSnapshot，一旦云端数据变了，这里会自动触发
-                // 注意：这里为了简化不使用 orderBy，我们在内存中排序
-                onSnapshot(POSTS_COLLECTION, (snapshot) => {
-                    const posts = [];
-                    snapshot.forEach((doc) => {
-                        posts.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    // 按时间倒序排列 (新的在前)
-                    state.posts = posts.sort((a, b) => b.createdAt - a.createdAt);
-                    
-                    // 如果正在看详情页，刷新详情页，否则刷新列表
-                    if (state.currentPostId) {
-                        renderDetail(state.currentPostId);
-                    } else {
-                        renderHome();
-                    }
-                }, (error) => {
-                    console.error("数据库监听失败:", error);
-                    document.getElementById('mainContainer').innerHTML = `<div class="empty-state">❌ 连接云端失败，请稍后刷新重试</div>`;
-                });
+
+                // 3. 监听数据库
+                startListening();
 
             } catch (err) {
-                console.error("登录失败:", err);
+                renderError(err);
             }
+        }
+
+        function startListening() {
+            onSnapshot(POSTS_COLLECTION, (snapshot) => {
+                const posts = [];
+                snapshot.forEach((doc) => {
+                    posts.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // 按时间倒序
+                state.posts = posts.sort((a, b) => b.createdAt - a.createdAt);
+                
+                if (state.currentPostId) {
+                    renderDetail(state.currentPostId);
+                } else {
+                    renderHome();
+                }
+            }, (error) => {
+                // 权限或网络错误
+                renderError(new Error("无法读取数据 (权限不足或网络中断): " + error.message));
+            });
+        }
+
+        function renderError(err) {
+            const container = document.getElementById('mainContainer');
+            container.innerHTML = `
+                <div class="error-state">
+                    <h3>❌ 哎呀，出错了</h3>
+                    <p>无法连接到论坛数据。</p>
+                    <div class="error-details">${err.message}</div>
+                </div>
+            `;
+            console.error(err);
         }
 
         // 渲染首页列表
@@ -381,7 +447,6 @@
             let html = '';
             state.posts.forEach(post => {
                 const commentCount = post.comments ? post.comments.length : 0;
-                // 将时间戳转为可读日期
                 const dateStr = new Date(post.createdAt).toLocaleDateString();
 
                 html += `
@@ -408,7 +473,6 @@
             const container = document.getElementById('mainContainer');
             const dateStr = new Date(post.createdAt).toLocaleDateString() + ' ' + new Date(post.createdAt).toLocaleTimeString();
             
-            // 处理评论列表
             const comments = post.comments || [];
             const commentsHtml = comments.map(c => `
                 <div class="comment-item">
@@ -418,7 +482,7 @@
                     </div>
                     <div>${escapeHtml(c.text)}</div>
                 </div>
-            `).reverse().join(''); // 最新的评论在上面
+            `).reverse().join('');
 
             container.innerHTML = `
                 <div class="detail-view">
@@ -446,13 +510,11 @@
             `;
         }
 
-        // --- 3. 全局暴露给 HTML 调用的方法 ---
+        // --- 全局方法 ---
         window.app = {
             goHome: () => renderHome(),
-            
             viewPost: (id) => renderDetail(id),
-
-            // 打开登录弹窗
+            
             openLoginModal: () => {
                 if (state.isAdmin) {
                     document.getElementById('writeModal').classList.add('active');
@@ -462,7 +524,6 @@
                 }
             },
 
-            // 验证密码
             checkLogin: () => {
                 const pass = document.getElementById('adminPassword').value;
                 if (pass === 'admin666') {
@@ -477,100 +538,60 @@
 
             closeModal: closeModal,
 
-            // 发布文章 (写数据库)
             publishPost: async () => {
                 const title = document.getElementById('postTitle').value;
                 const content = document.getElementById('postContent').value;
-
                 if (!title || !content) return showToast('标题和内容不能为空');
-
+                
                 try {
-                    // 向 Firestore 添加文档
                     await addDoc(POSTS_COLLECTION, {
-                        title: title,
-                        content: content,
-                        createdAt: Date.now(),
-                        likes: 0,
-                        comments: []
+                        title: title, content: content, createdAt: Date.now(), likes: 0, comments: []
                     });
-                    
                     showToast('🎉 发布成功！');
                     closeModal('writeModal');
-                    // 清空
                     document.getElementById('postTitle').value = '';
                     document.getElementById('postContent').value = '';
-                    renderHome();
+                    // 页面会由监听器自动刷新
                 } catch (e) {
                     console.error(e);
                     showToast('发布失败: ' + e.message);
                 }
             },
 
-            // 点赞 (更新数据库)
             addLike: async (id) => {
                 const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', id);
-                try {
-                    await updateDoc(postRef, {
-                        likes: increment(1)
-                    });
-                    // 不需要手动更新 UI，onSnapshot 会自动处理
-                } catch (e) {
-                    console.error(e);
-                    showToast('点赞失败');
-                }
+                try { await updateDoc(postRef, { likes: increment(1) }); } catch (e) { showToast('点赞失败'); }
             },
 
-            // 评论 (更新数据库)
             addComment: async (id) => {
                 const input = document.getElementById('commentInput');
                 const text = input.value.trim();
                 if (!text) return showToast('评论不能为空');
-
+                
                 const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', id);
-                const newComment = {
-                    user: '热心访客', // 这里可以扩展成随机名字
-                    text: text,
-                    time: Date.now()
-                };
-
                 try {
                     await updateDoc(postRef, {
-                        comments: arrayUnion(newComment)
+                        comments: arrayUnion({ user: '热心访客', text: text, time: Date.now() })
                     });
                     showToast('💬 评论已提交');
                     input.value = '';
-                } catch (e) {
-                    console.error(e);
-                    showToast('评论失败');
-                }
+                } catch (e) { showToast('评论失败'); }
             }
         };
 
-        // 辅助函数
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
-
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
-
-        // 简单的 HTML 转义防止 XSS
         function escapeHtml(text) {
             if (!text) return '';
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;")
-                .replace(/\n/g, "<br>");
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "<br>");
         }
 
-        // 启动！
+        // 启动
         init();
     </script>
 </body>
