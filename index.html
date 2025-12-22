@@ -354,24 +354,24 @@
 
                 const firebaseConfig = {
 
-     apiKey: "AIzaSyBzVD0XuA8Vw-e-7lKEx3K69UCe6lkDhFQ",
+            apiKey: "AIzaSyBzVD0XuA8Vw-e-7lKEx3K69UCe6lkDhFQ",
 
-   authDomain: "coffee-spark-ai-barista-8b0e2.firebaseapp.com",
+            authDomain: "coffee-spark-ai-barista-8b0e2.firebaseapp.com",
 
-  projectId: "coffee-spark-ai-barista-8b0e2",
+            projectId: "coffee-spark-ai-barista-8b0e2",
 
-  storageBucket: "coffee-spark-ai-barista-8b0e2.firebasestorage.app",
+            storageBucket: "coffee-spark-ai-barista-8b0e2.firebasestorage.app",
 
-  messagingSenderId: "732057248424",
+            messagingSenderId: "732057248424",
 
-  appId: "1:732057248424:web:cd43ba3f2d87cc58f3989d"
+            appId: "1:732057248424:web:cd43ba3f2d87cc58f3989d"
 
- };
+            };
 
                 // 手动定义 appId，通常用 projectId 即可
-const appId = "tangyuan"; // 记得把这里改成上面 projectId 对应的值
+            const appId = "coffee-spark-ai-barista-8b0e2"; // 记得把这里改成上面 projectId 对应的值
 
-const firebaseApp = initializeApp(firebaseConfig);
+            const firebaseApp = initializeApp(firebaseConfig);
                 db = getFirestore(firebaseApp);
                 auth = getAuth(firebaseApp);
                 POSTS_COLLECTION = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
