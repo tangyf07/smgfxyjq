@@ -4,46 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>汤圆的论坛 | 正式版</title>
-    <style>
-        /* --- CSS 样式部分 (保持美观) --- */
-        :root { --primary-color: #3b82f6; --bg-color: #f3f4f6; --card-bg: #ffffff; --text-main: #1f2937; --text-light: #6b7280; --error-color: #ef4444; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; line-height: 1.6; }
-        header { background-color: var(--card-bg); box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-        .nav-container { max-width: 1000px; margin: 0 auto; padding: 1rem 20px; display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-size: 1.5rem; font-weight: 800; color: var(--primary-color); text-decoration: none; display: flex; align-items: center; gap: 10px; cursor: pointer; }
-        .admin-btn { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 5px 15px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s; }
-        .admin-btn:hover { background: var(--primary-color); color: white; }
-        main { max-width: 800px; margin: 30px auto; padding: 0 20px; min-height: 80vh; }
-        .loading-state, .empty-state, .error-state { text-align: center; padding: 40px; color: var(--text-light); background: white; border-radius: 12px; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .error-state { color: var(--error-color); border: 1px solid #fee2e2; }
-        .post-card { background: var(--card-bg); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); cursor: pointer; transition: transform 0.2s; position: relative; }
-        .post-card:hover { transform: translateY(-3px); }
-        .post-meta { font-size: 0.85rem; color: var(--text-light); margin-bottom: 10px; display: flex; gap: 15px; }
-        .post-title { font-size: 1.5rem; margin: 0 0 10px 0; color: #111; }
-        .post-excerpt { color: #4b5563; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-        .detail-view { background: var(--card-bg); border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .back-btn { display: inline-block; margin-bottom: 20px; color: var(--primary-color); cursor: pointer; font-weight: bold; }
-        .article-content { font-size: 1.1rem; margin: 30px 0; border-bottom: 1px solid #eee; padding-bottom: 30px; white-space: pre-wrap; }
-        .interaction-area { margin-top: 20px; }
-        .like-btn { background: #ffe4e6; color: #e11d48; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px; transition: transform 0.2s; }
-        .like-btn:hover { transform: scale(1.05); }
-        .like-btn.liked { background: #e11d48; color: white; }
-        .comment-section { margin-top: 30px; }
-        .comment-input { width: 100%; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; resize: vertical; box-sizing: border-box; font-family: inherit;}
-        .comment-item { background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 10px; font-size: 0.95rem; }
-        .comment-header { font-weight: bold; font-size: 0.85rem; color: var(--text-light); margin-bottom: 5px; display: flex; justify-content: space-between; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal.active { display: flex; }
-        .modal-content { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        .btn-primary { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
-        .btn-cancel { background: transparent; border: none; cursor: pointer; margin-right: 10px; color: #666; }
-        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 30px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2000; }
-        #toast.show { opacity: 1; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -58,7 +19,6 @@
         <div class="loading-state"><h3>🚀 正在连接...</h3></div>
     </main>
 
-    <!-- 弹窗部分 -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <h3>🔐 管理员验证</h3>
@@ -67,6 +27,7 @@
             <div style="text-align: right;"><button class="btn-cancel" onclick="app.closeModal('loginModal')">取消</button><button class="btn-primary" onclick="app.checkLogin()">验证</button></div>
         </div>
     </div>
+
     <div id="writeModal" class="modal">
         <div class="modal-content" style="max-width: 600px;">
             <h3>📝 发布新博客</h3>
@@ -75,145 +36,9 @@
             <div style="text-align: right;"><button class="btn-cancel" onclick="app.closeModal('writeModal')">取消</button><button class="btn-primary" onclick="app.publishPost()">发布到云端</button></div>
         </div>
     </div>
+
     <div id="toast">操作成功</div>
 
-    <!-- JS 部分 -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // 关键修复：引入 initializeFirestore 来代替 getFirestore
-        import { initializeFirestore, collection, addDoc, onSnapshot, doc, updateDoc, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBzVD0XuA8Vw-e-7lKEx3K69UCe6lkDhFQ",
-            authDomain: "coffee-spark-ai-barista-8b0e2.firebaseapp.com",
-            projectId: "coffee-spark-ai-barista-8b0e2",
-            storageBucket: "coffee-spark-ai-barista-8b0e2.firebasestorage.app",
-            messagingSenderId: "732057248424",
-            appId: "1:732057248424:web:cd43ba3f2d87cc58f3989d"
-        };
-
-        // 2. 初始化
-        const appInstance = initializeApp(firebaseConfig);
-        
-        // 关键修复：使用 initializeFirestore 并强制开启 Long Polling
-        // 这能解决 "Backend didn't respond within 10 seconds" 的网络问题
-        const db = initializeFirestore(appInstance, {
-            experimentalForceLongPolling: true,
-        });
-        
-        const auth = getAuth(appInstance);
-        const POSTS_COLLECTION = collection(db, 'posts');
-
-        const state = { posts: [], currentPostId: null, isAdmin: false };
-
-        async function init() {
-            try {
-                // 登录
-                await signInAnonymously(auth);
-                
-                // 监听数据
-                onSnapshot(POSTS_COLLECTION, (snapshot) => {
-                    const posts = [];
-                    snapshot.forEach((doc) => posts.push({ id: doc.id, ...doc.data() }));
-                    state.posts = posts.sort((a, b) => b.createdAt - a.createdAt);
-                    state.currentPostId ? renderDetail(state.currentPostId) : renderHome();
-                }, (error) => {
-                    renderError("读取失败：请检查 Firebase 控制台是否开启了 Database 权限。\n" + error.message);
-                });
-
-            } catch (err) {
-                renderError("连接失败：请检查 Firebase 控制台是否开启了 Authentication 匿名登录。\n" + err.message);
-            }
-        }
-
-        // --- 渲染逻辑 ---
-        function renderHome() {
-            state.currentPostId = null;
-            const container = document.getElementById('mainContainer');
-            if (state.posts.length === 0) return container.innerHTML = `<div class="empty-state"><h3>👋 数据库是空的</h3><p>快去写第一篇文章吧！</p></div>`;
-            
-            container.innerHTML = state.posts.map(post => `
-                <article class="post-card" onclick="window.app.viewPost('${post.id}')">
-                    <div class="post-meta">📅 ${new Date(post.createdAt).toLocaleDateString()} <span>❤️ ${post.likes || 0}</span> <span>💬 ${post.comments?.length || 0}</span></div>
-                    <h2 class="post-title">${escapeHtml(post.title)}</h2>
-                    <div class="post-excerpt">${escapeHtml(post.content)}</div>
-                </article>
-            `).join('');
-        }
-
-        function renderDetail(id) {
-            const post = state.posts.find(p => p.id === id);
-            if (!post) return renderHome();
-            state.currentPostId = id;
-            
-            const commentsHtml = (post.comments || []).map(c => `
-                <div class="comment-item">
-                    <div class="comment-header"><span>👤 ${escapeHtml(c.user)}</span> <span style="font-size:0.8em">${new Date(c.time).toLocaleDateString()}</span></div>
-                    <div>${escapeHtml(c.text)}</div>
-                </div>
-            `).reverse().join('');
-
-            document.getElementById('mainContainer').innerHTML = `
-                <div class="detail-view">
-                    <div class="back-btn" onclick="window.app.goHome()">← 返回列表</div>
-                    <div class="post-meta">📅 ${new Date(post.createdAt).toLocaleString()}</div>
-                    <h1 class="post-title">${escapeHtml(post.title)}</h1>
-                    <div class="article-content">${escapeHtml(post.content)}</div>
-                    <div class="interaction-area"><button class="like-btn" onclick="window.app.addLike('${post.id}')">❤️ 点赞 (${post.likes || 0})</button></div>
-                    <div class="comment-section">
-                        <h3>评论区</h3><textarea id="commentInput" class="comment-input" placeholder="说点什么..."></textarea>
-                        <button class="btn-primary" onclick="window.app.addComment('${post.id}')">发表评论</button>
-                        <div class="comment-list" style="margin-top:20px;">${commentsHtml || '<div style="color:#999">暂无评论</div>'}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderError(msg) {
-            document.getElementById('mainContainer').innerHTML = `<div class="error-state"><h3>❌ 出错了</h3><div style="text-align:left; background:#f9f9f9; padding:10px; margin-top:10px;">${msg}</div></div>`;
-        }
-
-        // --- 功能函数 ---
-        window.app = {
-            goHome: renderHome,
-            viewPost: (id) => renderDetail(id),
-            openLoginModal: () => { state.isAdmin ? document.getElementById('writeModal').classList.add('active') : document.getElementById('loginModal').classList.add('active'); },
-            closeModal: (id) => document.getElementById(id).classList.remove('active'),
-            
-            checkLogin: () => {
-                if(document.getElementById('adminPassword').value === 'admin666') {
-                    state.isAdmin = true; showToast('验证成功'); app.closeModal('loginModal'); document.getElementById('writeModal').classList.add('active');
-                } else showToast('密码错误');
-            },
-
-            publishPost: async () => {
-                const title = document.getElementById('postTitle').value;
-                const content = document.getElementById('postContent').value;
-                if(!title || !content) return showToast('内容不能为空');
-                try {
-                    await addDoc(POSTS_COLLECTION, { title, content, createdAt: Date.now(), likes: 0, comments: [] });
-                    showToast('发布成功'); app.closeModal('writeModal');
-                    document.getElementById('postTitle').value = ''; document.getElementById('postContent').value = '';
-                } catch(e) { showToast('发布失败: ' + e.message); }
-            },
-
-            addLike: async (id) => { try { await updateDoc(doc(db, 'posts', id), { likes: increment(1) }); } catch(e) { console.error(e); } },
-            
-            addComment: async (id) => {
-                const text = document.getElementById('commentInput').value.trim();
-                if(!text) return;
-                try {
-                    await updateDoc(doc(db, 'posts', id), { comments: arrayUnion({ user: '访客', text, time: Date.now() }) });
-                    showToast('评论成功');
-                } catch(e) { console.error(e); }
-            }
-        };
-
-        function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000); }
-        function escapeHtml(text) { return text ? text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ''; }
-
-        init();
-    </script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
