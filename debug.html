@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>论坛连接诊断工具</title>
+    <style>
+        body { font-family: sans-serif; padding: 40px; background: #f0f2f5; }
+        .card { background: white; padding: 30px; border-radius: 10px; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; }
+        .step { margin: 15px 0; padding: 10px; background: #eee; border-radius: 5px; display: flex; align-items: center; justify-content: space-between; }
+        .step.pending { border-left: 5px solid #999; }
+        .step.success { background: #d1fae5; border-left: 5px solid #10b981; color: #065f46; }
+        .step.error { background: #fee2e2; border-left: 5px solid #ef4444; color: #991b1b; }
+        .status-icon { font-weight: bold; }
+        #errorMsg { margin-top: 20px; padding: 15px; background: #2d3748; color: #fc8181; border-radius: 5px; font-family: monospace; white-space: pre-wrap; display: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🛠️ 论坛连接诊断器</h2>
+        <p>请等待程序自动检测...</p>
+
+        <div id="step1" class="step pending"><span>1. 初始化 Firebase 配置</span><span class="status-icon">⏳</span></div>
+        <div id="step2" class="step pending"><span>2. 测试匿名登录 (Auth)</span><span class="status-icon">⏳</span></div>
+        <div id="step3" class="step pending"><span>3. 连接数据库 (Firestore)</span><span class="status-icon">⏳</span></div>
+        <div id="step4" class="step pending"><span>4. 尝试写入一条测试数据</span><span class="status-icon">⏳</span></div>
+
+        <div id="errorMsg"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // 你的配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzVD0XuA8Vw-e-7lKEx3K69UCe6lkDhFQ",
+            authDomain: "coffee-spark-ai-barista-8b0e2.firebaseapp.com",
+            projectId: "coffee-spark-ai-barista-8b0e2",
+            storageBucket: "coffee-spark-ai-barista-8b0e2.firebasestorage.app",
+            messagingSenderId: "732057248424",
+            appId: "1:732057248424:web:cd43ba3f2d87cc58f3989d"
+        };
+
+        const updateStep = (id, status, msg = '') => {
+            const el = document.getElementById(id);
+            if (status === 'success') {
+                el.className = 'step success';
+                el.querySelector('.status-icon').textContent = '✅ 成功';
+            } else if (status === 'error') {
+                el.className = 'step error';
+                el.querySelector('.status-icon').textContent = '❌ 失败';
+                const errBox = document.getElementById('errorMsg');
+                errBox.style.display = 'block';
+                errBox.textContent = `错误详情 (请把这个发给我):\n\n${msg}`;
+                throw new Error('Stop'); // 停止后续步骤
+            }
+        };
+
+        async function runDiagnosis() {
+            try {
+                // 1. 初始化
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+                updateStep('step1', 'success');
+
+                // 2. 登录
+                try {
+                    await signInAnonymously(auth);
+                    updateStep('step2', 'success');
+                } catch (e) {
+                    updateStep('step2', 'error', `登录失败: ${e.code}\n${e.message}\n\n👉 解决方法: 请去 Firebase 控制台 -> Authentication -> Sign-in method，把 "Anonymous" 开关打开。`);
+                }
+
+                // 3. 连接数据库
+                updateStep('step3', 'success');
+
+                // 4. 写入测试
+                try {
+                    await addDoc(collection(db, 'debug_tests'), {
+                        time: new Date().toISOString(),
+                        test: 'connection_check'
+                    });
+                    updateStep('step4', 'success');
+                    alert("🎉 恭喜！连接完全正常！现在你可以去运行 index.html 了！");
+                } catch (e) {
+                    let tip = "未知错误";
+                    if (e.message.includes("permission-denied") || e.message.includes("Missing or insufficient permissions")) {
+                        tip = "👉 解决方法: 数据库权限被拒绝。\n请去 Firebase 控制台 -> Firestore Database -> Rules，把规则改成 allow read, write: if true;";
+                    } else if (e.code === "unimplemented" || e.message.includes("NOT_FOUND")) {
+                         tip = "👉 解决方法: 你可能创建了项目，但【没有创建数据库】。\n请去 Firebase 控制台 -> Build -> Firestore Database，点击 'Create Database'。";
+                    }
+                    updateStep('step4', 'error', `写入失败: ${e.code}\n${e.message}\n\n${tip}`);
+                }
+
+            } catch (err) {
+                if (err.message !== 'Stop') console.error(err);
+            }
+        }
+
+        runDiagnosis();
+    </script>
+</body>
+</html>
