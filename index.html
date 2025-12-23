@@ -3,11 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>汤圆的论坛 | 正式版</title>
+    <title>汤圆的论坛 | 功能升级版</title>
+    <!-- 1. 引入样式文件 -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <!-- 关键修复：预先定义全局 app 对象，防止报错 -->
+    <script>
+        window.app = {
+            goHome: function() { console.log("功能正在加载中..."); },
+            openLoginModal: function() { alert("正在连接云端，请稍等..."); },
+            closeModal: function(id) { document.getElementById(id).classList.remove('active'); },
+            checkLogin: function() {},
+            publishPost: function() {},
+            viewPost: function() {},
+            addLike: function() {},
+            addComment: function() {},
+            deletePost: function() {}
+        };
+    </script>
+
+    <!-- 导航栏 -->
     <header>
         <div class="nav-container">
             <div class="logo" onclick="app.goHome()"><span>☁️</span> 汤圆的云论坛</div>
@@ -15,10 +32,12 @@
         </div>
     </header>
 
+    <!-- 主内容区 -->
     <main id="mainContainer">
         <div class="loading-state"><h3>🚀 正在连接...</h3></div>
     </main>
 
+    <!-- 登录弹窗 -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <h3>🔐 管理员验证</h3>
@@ -28,17 +47,33 @@
         </div>
     </div>
 
+    <!-- 写文章弹窗 (增加了图片链接输入) -->
     <div id="writeModal" class="modal">
         <div class="modal-content" style="max-width: 600px;">
             <h3>📝 发布新博客</h3>
-            <div class="form-group"><label>标题</label><input type="text" id="postTitle" placeholder="输入文章标题..."></div>
-            <div class="form-group"><label>内容</label><textarea id="postContent" rows="8" placeholder="在这里写下你的教程..."></textarea></div>
-            <div style="text-align: right;"><button class="btn-cancel" onclick="app.closeModal('writeModal')">取消</button><button class="btn-primary" onclick="app.publishPost()">发布到云端</button></div>
+            <div class="form-group">
+                <label>标题</label>
+                <input type="text" id="postTitle" placeholder="输入文章标题...">
+            </div>
+            <div class="form-group">
+                <label>封面图片链接 (可选)</label>
+                <input type="text" id="postImage" placeholder="粘贴以 https:// 开头的图片网址...">
+            </div>
+            <div class="form-group">
+                <label>内容</label>
+                <textarea id="postContent" rows="8" placeholder="在这里写下你的教程..."></textarea>
+            </div>
+            <div style="text-align: right;">
+                <button class="btn-cancel" onclick="app.closeModal('writeModal')">取消</button>
+                <button class="btn-primary" onclick="app.publishPost()">发布到云端</button>
+            </div>
         </div>
     </div>
 
     <div id="toast">操作成功</div>
 
+    <!-- 2. 引入逻辑文件 (注意 type="module") -->
+    <!-- 加上 defer 属性确保顺序 -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
