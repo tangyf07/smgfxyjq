@@ -2,20 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { initializeFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-// --- 0. 预先定义全局变量 (防止页面报错 app is not defined) ---
-// 这就是那个“安全气囊”，先占个位
-window.app = {
-    goHome: () => console.log("正在加载中..."),
-    viewPost: () => console.log("正在加载中..."),
-    openLoginModal: () => console.log("正在加载中..."),
-    closeModal: () => document.querySelectorAll('.modal').forEach(el => el.classList.remove('active')),
-    checkLogin: () => alert("功能加载中，请稍后..."),
-    publishPost: () => alert("功能加载中，请稍后..."),
-    addLike: () => {},
-    addComment: () => {},
-    deletePost: () => {}
-};
-
 // --- 配置信息 ---
 const firebaseConfig = {
     apiKey: "AIzaSyBzVD0XuA8Vw-e-7lKEx3K69UCe6lkDhFQ",
@@ -33,25 +19,80 @@ const state = {
     isAdmin: false
 };
 
-// --- 核心逻辑 ---
-let db, auth, POSTS_COLLECTION;
-
+// --- 初始化系统 ---
 async function initSystem() {
     try {
         // 1. 初始化 Firebase
         const appInstance = initializeApp(firebaseConfig);
-        
-        // 强制使用长轮询 (Long Polling) 以适应各种网络环境
-        db = initializeFirestore(appInstance, { experimentalForceLongPolling: true });
-        auth = getAuth(appInstance);
-        POSTS_COLLECTION = collection(db, 'posts');
+        const db = initializeFirestore(appInstance, { experimentalForceLongPolling: true });
+        const auth = getAuth(appInstance);
+        const POSTS_COLLECTION = collection(db, 'posts');
 
-        // 2. 覆盖全局 app 对象 (加载成功，替换掉上面的占位符)
+        // 2. 定义功能函数
+        const renderHome = () => {
+            state.currentPostId = null;
+            const container = document.getElementById('mainContainer');
+            if (state.posts.length === 0) return container.innerHTML = `<div class="empty-state"><h3>👋 数据库是空的</h3><p>快去写第一篇文章吧！</p></div>`;
+            
+            container.innerHTML = state.posts.map(post => {
+                const deleteBtn = state.isAdmin ? `<button class="delete-btn" onclick="event.stopPropagation(); window.app.deletePost('${post.id}')">🗑️ 删除</button>` : '';
+                const imageTag = post.image ? `<img src="${post.image}" class="post-image" onerror="this.style.display='none'">` : '';
+
+                return `
+                    <article class="post-card" onclick="window.app.viewPost('${post.id}')">
+                        ${deleteBtn}
+                        ${imageTag}
+                        <div class="post-meta">📅 ${new Date(post.createdAt).toLocaleDateString()} <span>❤️ ${post.likes || 0}</span> <span>💬 ${post.comments?.length || 0}</span></div>
+                        <h2 class="post-title">${escapeHtml(post.title)}</h2>
+                        <div class="post-excerpt">${escapeHtml(post.content)}</div>
+                    </article>
+                `;
+            }).join('');
+        };
+
+        const renderDetail = (id) => {
+            const post = state.posts.find(p => p.id === id);
+            if (!post) return renderHome();
+            state.currentPostId = id;
+            
+            const imageTag = post.image ? `<img src="${post.image}" class="post-image">` : '';
+            const deleteBtn = state.isAdmin ? `<button class="delete-btn" onclick="window.app.deletePost('${post.id}')">🗑️ 删除文章</button>` : '';
+
+            const commentsHtml = (post.comments || []).map(c => `
+                <div class="comment-item">
+                    <div class="comment-header"><span>👤 ${escapeHtml(c.user)}</span> <span style="font-size:0.8em">${new Date(c.time).toLocaleDateString()}</span></div>
+                    <div>${escapeHtml(c.text)}</div>
+                </div>
+            `).reverse().join('');
+
+            document.getElementById('mainContainer').innerHTML = `
+                <div class="detail-view">
+                    <div class="back-btn" onclick="window.app.goHome()">← 返回列表</div>
+                    ${deleteBtn}
+                    ${imageTag}
+                    <div class="post-meta">📅 ${new Date(post.createdAt).toLocaleString()}</div>
+                    <h1 class="post-title">${escapeHtml(post.title)}</h1>
+                    <div class="article-content">${escapeHtml(post.content)}</div>
+                    <div class="interaction-area"><button class="like-btn" onclick="window.app.addLike('${post.id}')">❤️ 点赞 (${post.likes || 0})</button></div>
+                    
+                    <div class="comment-section">
+                        <h3>评论区</h3>
+                        <div class="comment-form">
+                            <input type="text" id="commentNick" class="nickname-input" placeholder="你的昵称 (可选)">
+                        </div>
+                        <textarea id="commentInput" class="comment-input" placeholder="说点什么..."></textarea>
+                        <button class="btn-primary" onclick="window.app.addComment('${post.id}')">发表评论</button>
+                        <div class="comment-list" style="margin-top:20px;">${commentsHtml || '<div style="color:#999">暂无评论</div>'}</div>
+                    </div>
+                </div>
+            `;
+        };
+
+        // 3. 覆盖全局 app 对象 (连接成功，激活功能)
         window.app = {
             goHome: renderHome,
             viewPost: (id) => renderDetail(id),
             
-            // 弹窗控制
             openLoginModal: () => {
                 state.isAdmin ? 
                     document.getElementById('writeModal').classList.add('active') : 
@@ -59,20 +100,18 @@ async function initSystem() {
             },
             closeModal: (id) => document.getElementById(id).classList.remove('active'),
             
-            // 登录验证
             checkLogin: () => {
                 if(document.getElementById('adminPassword').value === 'admin666') {
                     state.isAdmin = true;
                     showToast('验证成功！已获得管理员权限');
-                    app.closeModal('loginModal');
+                    document.getElementById('loginModal').classList.remove('active');
                     document.getElementById('writeModal').classList.add('active');
-                    renderHome(); // 刷新界面以显示删除按钮
+                    renderHome(); 
                 } else {
                     showToast('密码错误');
                 }
             },
 
-            // 发布文章
             publishPost: async () => {
                 const title = document.getElementById('postTitle').value;
                 const content = document.getElementById('postContent').value;
@@ -85,8 +124,7 @@ async function initSystem() {
                         createdAt: Date.now(), likes: 0, comments: [] 
                     });
                     showToast('发布成功'); 
-                    app.closeModal('writeModal');
-                    // 清空输入框
+                    document.getElementById('writeModal').classList.remove('active');
                     document.getElementById('postTitle').value = ''; 
                     document.getElementById('postContent').value = '';
                     document.getElementById('postImage').value = '';
@@ -96,20 +134,18 @@ async function initSystem() {
                 }
             },
 
-            // 删除文章
             deletePost: async (id) => {
                 if (!confirm("确定要删除这篇文章吗？不可恢复哦！")) return;
                 try {
                     await deleteDoc(doc(db, 'posts', id));
                     showToast('已删除 🗑️');
-                    renderHome(); // 强制刷新列表
+                    renderHome(); 
                 } catch (e) { 
                     console.error(e);
                     showToast('删除失败'); 
                 }
             },
 
-            // 互动功能
             addLike: async (id) => { 
                 try { await updateDoc(doc(db, 'posts', id), { likes: increment(1) }); } 
                 catch(e) { console.error(e); } 
@@ -124,12 +160,12 @@ async function initSystem() {
                 try {
                     await updateDoc(doc(db, 'posts', id), { comments: arrayUnion({ user, text, time: Date.now() }) });
                     showToast('评论成功');
-                    document.getElementById('commentInput').value = ''; // 清空评论框
+                    document.getElementById('commentInput').value = ''; 
                 } catch(e) { console.error(e); }
             }
         };
 
-        // 3. 开始登录和监听
+        // 4. 开始连接
         await signInAnonymously(auth);
         
         onSnapshot(POSTS_COLLECTION, (snapshot) => {
@@ -152,68 +188,6 @@ async function initSystem() {
     }
 }
 
-// --- 渲染逻辑 ---
-
-function renderHome() {
-    state.currentPostId = null;
-    const container = document.getElementById('mainContainer');
-    if (state.posts.length === 0) return container.innerHTML = `<div class="empty-state"><h3>👋 数据库是空的</h3><p>快去写第一篇文章吧！</p></div>`;
-    
-    container.innerHTML = state.posts.map(post => {
-        const deleteBtn = state.isAdmin ? `<button class="delete-btn" onclick="event.stopPropagation(); window.app.deletePost('${post.id}')">🗑️ 删除</button>` : '';
-        const imageTag = post.image ? `<img src="${post.image}" class="post-image" onerror="this.style.display='none'">` : '';
-
-        return `
-            <article class="post-card" onclick="window.app.viewPost('${post.id}')">
-                ${deleteBtn}
-                ${imageTag}
-                <div class="post-meta">📅 ${new Date(post.createdAt).toLocaleDateString()} <span>❤️ ${post.likes || 0}</span> <span>💬 ${post.comments?.length || 0}</span></div>
-                <h2 class="post-title">${escapeHtml(post.title)}</h2>
-                <div class="post-excerpt">${escapeHtml(post.content)}</div>
-            </article>
-        `;
-    }).join('');
-}
-
-function renderDetail(id) {
-    const post = state.posts.find(p => p.id === id);
-    if (!post) return renderHome();
-    state.currentPostId = id;
-    
-    const imageTag = post.image ? `<img src="${post.image}" class="post-image">` : '';
-    const deleteBtn = state.isAdmin ? `<button class="delete-btn" onclick="window.app.deletePost('${post.id}')">🗑️ 删除文章</button>` : '';
-
-    const commentsHtml = (post.comments || []).map(c => `
-        <div class="comment-item">
-            <div class="comment-header"><span>👤 ${escapeHtml(c.user)}</span> <span style="font-size:0.8em">${new Date(c.time).toLocaleDateString()}</span></div>
-            <div>${escapeHtml(c.text)}</div>
-        </div>
-    `).reverse().join('');
-
-    document.getElementById('mainContainer').innerHTML = `
-        <div class="detail-view">
-            <div class="back-btn" onclick="window.app.goHome()">← 返回列表</div>
-            ${deleteBtn}
-            ${imageTag}
-            <div class="post-meta">📅 ${new Date(post.createdAt).toLocaleString()}</div>
-            <h1 class="post-title">${escapeHtml(post.title)}</h1>
-            <div class="article-content">${escapeHtml(post.content)}</div>
-            <div class="interaction-area"><button class="like-btn" onclick="window.app.addLike('${post.id}')">❤️ 点赞 (${post.likes || 0})</button></div>
-            
-            <div class="comment-section">
-                <h3>评论区</h3>
-                <div class="comment-form">
-                    <input type="text" id="commentNick" class="nickname-input" placeholder="你的昵称 (可选)">
-                </div>
-                <textarea id="commentInput" class="comment-input" placeholder="说点什么..."></textarea>
-                <button class="btn-primary" onclick="window.app.addComment('${post.id}')">发表评论</button>
-                <div class="comment-list" style="margin-top:20px;">${commentsHtml || '<div style="color:#999">暂无评论</div>'}</div>
-            </div>
-        </div>
-    `;
-}
-
-// --- 辅助工具 ---
 function renderError(msg) {
     document.getElementById('mainContainer').innerHTML = `<div class="error-state"><h3>❌ 出错了</h3><div style="text-align:left; background:#f9f9f9; padding:10px; margin-top:10px;">${msg}</div></div>`;
 }
@@ -230,5 +204,4 @@ function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// 启动系统
 initSystem();
